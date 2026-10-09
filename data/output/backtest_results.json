@@ -1,0 +1,381 @@
+{
+  "meta": {
+    "seed": 42,
+    "laya_mode": "real Laya (live, CPU)",
+    "laya_endpoint": "/api/predict",
+    "n_segments": 28,
+    "dhw_positive_threshold": 4.0,
+    "bootstrap_n": 1000,
+    "alpha_grid": [
+      0.3,
+      0.35,
+      0.4,
+      0.45,
+      0.5,
+      0.55,
+      0.6,
+      0.65,
+      0.7
+    ],
+    "period_2020": {
+      "year": 2020,
+      "month_start": 3,
+      "month_end": 6,
+      "label": "2020"
+    },
+    "period_2024": {
+      "year": 2024,
+      "month_start": 3,
+      "month_end": 6,
+      "label": "2024"
+    }
+  },
+  "ml_model": {
+    "train_size": 58,
+    "test_size": 26,
+    "metrics": {
+      "auc": 0.9939393939393939,
+      "accuracy": 0.9615384615384616,
+      "precision": 1.0,
+      "recall": 0.9090909090909091,
+      "f1": 0.9523809523809523,
+      "confusion_matrix": [
+        [
+          15,
+          0
+        ],
+        [
+          1,
+          10
+        ]
+      ],
+      "n_test": 26,
+      "n_positive": 11
+    },
+    "coefficients": {
+      "current_dhw": 2.6429188523702116,
+      "max_dhw_5yr": 0.8975826920761537,
+      "mean_depth": 0.07705089018935093,
+      "reef_area_km2": 0.29948591269408203,
+      "distance_to_nearest_dive_site_km": -0.17194554555039737,
+      "dive_sites_within_5km": 0.14337789424656822,
+      "connectivity_score": 0.44046060589365116,
+      "larval_input": 0.00876538704807002,
+      "larval_output": 0.4598955846484536,
+      "rhi_score": 0.0,
+      "total_settlements": 0.008765387048070053,
+      "current_sst": 0.027169107627461477
+    }
+  },
+  "entropy_weights_2020": {
+    "current_dhw": 0.03353057341953008,
+    "max_dhw_5yr": 0.034309944199546465,
+    "mean_depth": 0.007437652432741318,
+    "reef_area_km2": 0.035373571881490415,
+    "distance_to_nearest_dive_site_km": 0.008806686358027989,
+    "dive_sites_within_5km": 0.034354131440606596,
+    "connectivity_score": 0.09351774591775486,
+    "larval_input": 0.3081964428335004,
+    "larval_output": 0.10459047894559945,
+    "rhi_score": 0.0,
+    "total_settlements": 0.3081964428335004,
+    "bleaching_probability": 0.031686329737702
+  },
+  "walk_forward": {
+    "direction_A_train2020_val2024": {
+      "best_alpha": 0.7,
+      "grid": [
+        {
+          "alpha": 0.3,
+          "auc": 0.6778
+        },
+        {
+          "alpha": 0.35,
+          "auc": 0.7417
+        },
+        {
+          "alpha": 0.4,
+          "auc": 0.8167
+        },
+        {
+          "alpha": 0.45,
+          "auc": 0.8389
+        },
+        {
+          "alpha": 0.5,
+          "auc": 0.8917
+        },
+        {
+          "alpha": 0.55,
+          "auc": 0.9056
+        },
+        {
+          "alpha": 0.6,
+          "auc": 0.925
+        },
+        {
+          "alpha": 0.65,
+          "auc": 0.9278
+        },
+        {
+          "alpha": 0.7,
+          "auc": 0.9528
+        }
+      ],
+      "train_auc": 0.9528,
+      "val_auc": 0.9813
+    },
+    "direction_B_train2024_val2020": {
+      "best_alpha": 0.7,
+      "grid": [
+        {
+          "alpha": 0.3,
+          "auc": 0.8556
+        },
+        {
+          "alpha": 0.35,
+          "auc": 0.877
+        },
+        {
+          "alpha": 0.4,
+          "auc": 0.9011
+        },
+        {
+          "alpha": 0.45,
+          "auc": 0.9251
+        },
+        {
+          "alpha": 0.5,
+          "auc": 0.9492
+        },
+        {
+          "alpha": 0.55,
+          "auc": 0.9652
+        },
+        {
+          "alpha": 0.6,
+          "auc": 0.9706
+        },
+        {
+          "alpha": 0.65,
+          "auc": 0.9759
+        },
+        {
+          "alpha": 0.7,
+          "auc": 0.9813
+        }
+      ],
+      "train_auc": 0.9813,
+      "val_auc": 0.9528
+    },
+    "final_alpha": 0.7
+  },
+  "roc_threshold": {
+    "merged_auc": 0.9653,
+    "n_total": 56,
+    "n_positive": 35,
+    "youden": {
+      "threshold": 20.6,
+      "youden_j": 0.8381,
+      "sensitivity": 0.8857,
+      "specificity": 0.9524
+    },
+    "threshold_bootstrap_ci": {
+      "mean": 20.54,
+      "ci_lower": 19.2,
+      "ci_upper": 21.3,
+      "n_used": 1000
+    },
+    "precision_recall_f1": [
+      {
+        "threshold": 20.6,
+        "precision": 0.9688,
+        "recall": 0.8857,
+        "f1": 0.9254,
+        "tp": 31,
+        "fp": 1,
+        "fn": 4
+      },
+      {
+        "threshold": 30.0,
+        "precision": 1.0,
+        "recall": 0.3714,
+        "f1": 0.5417,
+        "tp": 13,
+        "fp": 0,
+        "fn": 22
+      },
+      {
+        "threshold": 35.0,
+        "precision": 1.0,
+        "recall": 0.0571,
+        "f1": 0.1081,
+        "tp": 2,
+        "fp": 0,
+        "fn": 33
+      },
+      {
+        "threshold": 40.0,
+        "precision": 1.0,
+        "recall": 0.0571,
+        "f1": 0.1081,
+        "tp": 2,
+        "fp": 0,
+        "fn": 33
+      },
+      {
+        "threshold": 45.0,
+        "precision": 1.0,
+        "recall": 0.0571,
+        "f1": 0.1081,
+        "tp": 2,
+        "fp": 0,
+        "fn": 33
+      },
+      {
+        "threshold": 50.0,
+        "precision": 1.0,
+        "recall": 0.0571,
+        "f1": 0.1081,
+        "tp": 2,
+        "fp": 0,
+        "fn": 33
+      },
+      {
+        "threshold": 55.0,
+        "precision": 1.0,
+        "recall": 0.0571,
+        "f1": 0.1081,
+        "tp": 2,
+        "fp": 0,
+        "fn": 33
+      },
+      {
+        "threshold": 60.0,
+        "precision": 1.0,
+        "recall": 0.0571,
+        "f1": 0.1081,
+        "tp": 2,
+        "fp": 0,
+        "fn": 33
+      }
+    ]
+  },
+  "hit_rate": {
+    "threshold": 20.6,
+    "hit_rate": 0.9688,
+    "invest_count": 32,
+    "hit_count": 31,
+    "bootstrap_ci": {
+      "mean": 0.9689,
+      "ci_lower": 0.8974,
+      "ci_upper": 1.0,
+      "n_used": 1000
+    }
+  },
+  "ablation": {
+    "baseline_auc_2020": 0.9528,
+    "results": [
+      {
+        "feature": "bleaching_probability",
+        "ablated_auc": 0.8889,
+        "delta_auc": -0.0639
+      },
+      {
+        "feature": "current_dhw",
+        "ablated_auc": 0.9083,
+        "delta_auc": -0.0444
+      },
+      {
+        "feature": "max_dhw_5yr",
+        "ablated_auc": 0.9222,
+        "delta_auc": -0.0306
+      },
+      {
+        "feature": "mean_depth",
+        "ablated_auc": 0.95,
+        "delta_auc": -0.0028
+      },
+      {
+        "feature": "dive_sites_within_5km",
+        "ablated_auc": 0.95,
+        "delta_auc": -0.0028
+      },
+      {
+        "feature": "distance_to_nearest_dive_site_km",
+        "ablated_auc": 0.9528,
+        "delta_auc": 0.0
+      },
+      {
+        "feature": "rhi_score",
+        "ablated_auc": 0.9528,
+        "delta_auc": 0.0
+      },
+      {
+        "feature": "reef_area_km2",
+        "ablated_auc": 0.9556,
+        "delta_auc": 0.0028
+      },
+      {
+        "feature": "connectivity_score",
+        "ablated_auc": 0.9583,
+        "delta_auc": 0.0056
+      },
+      {
+        "feature": "larval_output",
+        "ablated_auc": 0.9583,
+        "delta_auc": 0.0056
+      },
+      {
+        "feature": "larval_input",
+        "ablated_auc": 0.9667,
+        "delta_auc": 0.0139
+      },
+      {
+        "feature": "total_settlements",
+        "ablated_auc": 0.9667,
+        "delta_auc": 0.0139
+      }
+    ]
+  },
+  "old_vs_new": {
+    "old_model_description": "Pure Laya v1 rubric + hardcoded thresholds (invest>=55, monitor>=40)",
+    "new_model_description": "Three-layer fusion (ML+MCDM+Laya v2) + Youden threshold=20.60, alpha=0.7",
+    "old_2020": {
+      "period": "2020",
+      "auc": 0.5667,
+      "invest_count": 28,
+      "avg_score": 55.57,
+      "hit_rate": 0.6429,
+      "invest_hits": 18,
+      "invest_total": 28
+    },
+    "old_2024": {
+      "period": "2024",
+      "auc": 0.7968,
+      "invest_count": 28,
+      "avg_score": 55.18,
+      "hit_rate": 0.6071,
+      "invest_hits": 17,
+      "invest_total": 28
+    },
+    "new_2020": {
+      "period": "2020",
+      "auc": 0.9528,
+      "invest_count": 16,
+      "avg_score": 24.64,
+      "hit_rate": 1.0,
+      "invest_hits": 16,
+      "invest_total": 16
+    },
+    "new_2024": {
+      "period": "2024",
+      "auc": 0.9813,
+      "invest_count": 16,
+      "avg_score": 24.39,
+      "hit_rate": 0.9375,
+      "invest_hits": 15,
+      "invest_total": 16
+    }
+  }
+}

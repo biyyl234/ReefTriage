@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Reef Lab · ReefTriage</title>
+<link rel="stylesheet" href="https://cdn.staticfile.org/layui/2.9.16/css/layui.css" />
+<link rel="stylesheet" href="/static/style.css?v=8" />
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+  /* ===== Micro page overrides ===== */
+  html, body { overflow-y: auto; overflow-x: hidden; height: auto; min-height: 100vh; }
+  body { background: var(--bg); padding: 0; }
+
+  .micro-header {
+    position: sticky; top: 0; z-index: 100;
+    height: 56px; line-height: 56px;
+    background: var(--panel); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 20px; gap: 16px;
+  }
+  .micro-header .back-link {
+    color: var(--cyan); text-decoration: none; font-size: 13px; font-weight: 600;
+    white-space: nowrap; transition: opacity .15s;
+  }
+  .micro-header .back-link:hover { opacity: .8; }
+  .micro-header .seg-title { flex: 1; min-width: 0; }
+  .micro-header .seg-title h1 {
+    font-size: 16px; font-weight: 700; color: var(--text); margin: 0; line-height: 1.2;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .micro-header .seg-meta { font-size: 11px; color: var(--muted); line-height: 1.2; }
+  .micro-header .seg-meta b { color: var(--cyan); }
+
+  .micro-body { padding: 16px 20px 40px; max-width: 1600px; margin: 0 auto; }
+
+  .micro-card {
+    background: var(--panel); backdrop-filter: blur(12px);
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; margin-bottom: 16px;
+    box-shadow: var(--shadow);
+  }
+  .micro-card-title {
+    font-size: 11px; font-weight: 700; color: var(--cyan);
+    text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 12px;
+    padding-bottom: 8px; border-bottom: 1px solid rgba(0,212,255,0.1);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .micro-card-title .src-tag {
+    font-size: 9px; color: var(--muted); text-transform: none; letter-spacing: 0;
+    font-weight: 400;
+  }
+
+  .chart-box { width: 100%; height: 220px; }
+  .chart-box-sm { width: 100%; height: 180px; }
+
+  /* BAA badge */
+  .baa-badge {
+    display: inline-block; padding: 4px 14px; border-radius: 14px;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.5px;
+  }
+  .baa-0 { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.4); }
+  .baa-1 { background: rgba(34,211,238,0.15); color: #22d3ee; border: 1px solid rgba(34,211,238,0.4); }
+  .baa-2 { background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.4); }
+  .baa-3 { background: rgba(249,115,22,0.15); color: #f97316; border: 1px solid rgba(249,115,22,0.4); }
+  .baa-4 { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.4); }
+  .baa-5 { background: rgba(220,38,38,0.25); color: #fca5a5; border: 1px solid rgba(220,38,38,0.6); }
+
+  /* Chemical metric cards */
+  .chem-panel-inner { display: flex; flex-direction: column; height: 100%; }
+  .chem-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; flex-shrink: 0; }
+  #chart-chem-trend { flex: 1; min-height: 160px; margin-top: 12px; width: 100%; }
+  .chem-card {
+    background: rgba(0,212,255,0.04); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px; text-align: center;
+  }
+  .chem-card .chem-val { font-size: 22px; font-weight: 800; color: var(--cyan); line-height: 1.1; }
+  .chem-card .chem-unit { font-size: 10px; color: var(--muted); }
+  .chem-card .chem-name { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+  .chem-card .chem-range { font-size: 9px; color: var(--muted); margin-top: 2px; }
+  .chem-card .chem-status {
+    display: inline-block; margin-top: 6px; padding: 2px 8px; border-radius: 8px;
+    font-size: 9px; font-weight: 700; text-transform: uppercase;
+  }
+  .chem-card.ok { border-color: rgba(16,185,129,0.3); }
+  .chem-card.ok .chem-status { background: rgba(16,185,129,0.15); color: #10b981; }
+  .chem-card.warn { border-color: rgba(245,158,11,0.3); }
+  .chem-card.warn .chem-status { background: rgba(245,158,11,0.15); color: #f59e0b; }
+  .chem-card.danger { border-color: rgba(239,68,68,0.4); }
+  .chem-card.danger .chem-status { background: rgba(239,68,68,0.15); color: #ef4444; }
+
+  /* Coral image grid */
+  .coral-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; }
+  .coral-img-card {
+    border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+    background: rgba(0,0,0,0.2); text-align: center;
+  }
+  .coral-img-card img { width: 100%; height: 110px; object-fit: cover; display: block; }
+  .coral-img-card .coral-label { padding: 6px 4px; font-size: 10px; }
+  .coral-img-card .coral-level { font-weight: 700; font-size: 11px; }
+  .coral-img-card .coral-pct { color: var(--muted); font-size: 9px; }
+
+  /* AI upload */
+  .ai-upload-zone {
+    border: 2px dashed var(--border-strong); border-radius: 8px;
+    padding: 16px; text-align: center; margin-bottom: 10px;
+    cursor: pointer; transition: all .15s;
+  }
+  .ai-upload-zone:hover { border-color: var(--cyan); background: rgba(0,212,255,0.05); }
+  .ai-upload-zone input { display: none; }
+  .ai-result { margin-top: 8px; display: none; }
+  .ai-result.show { display: block; }
+  .ai-result .ai-big { font-size: 28px; font-weight: 800; color: var(--cyan); }
+
+  /* Bleaching events list */
+  .event-list { list-style: none; padding: 0; margin: 8px 0 0; }
+  .event-list li {
+    padding: 6px 10px; margin: 4px 0; border-radius: 6px;
+    background: rgba(0,212,255,0.04); border-left: 3px solid var(--cyan);
+    font-size: 11px; display: flex; justify-content: space-between; align-items: center;
+  }
+  .event-list li.sev-moderate { border-left-color: #f59e0b; }
+  .event-list li.sev-severe { border-left-color: #ef4444; }
+  .event-list li .event-note { color: var(--muted); font-size: 9px; }
+
+  /* Cost calculator */
+  .cost-total {
+    text-align: center; padding: 16px; margin: 12px 0;
+    background: rgba(0,212,255,0.06); border: 1px solid var(--border-strong);
+    border-radius: 10px;
+  }
+  .cost-total .cost-num {
+    font-size: 36px; font-weight: 800; color: var(--cyan);
+    text-shadow: 0 0 20px rgba(0,212,255,0.4); line-height: 1.1;
+  }
+  .cost-total .cost-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .cost-total .cost-sub { font-size: 12px; color: var(--text); margin-top: 6px; }
+
+  .cost-table { width: 100%; font-size: 12px; border-collapse: collapse; margin: 8px 0; }
+  .cost-table th {
+    text-align: left; padding: 6px 10px; color: var(--cyan);
+    border-bottom: 1px solid var(--border); font-size: 10px; text-transform: uppercase;
+  }
+  .cost-table td { padding: 6px 10px; border-bottom: 1px solid rgba(148,163,184,0.08); color: var(--text); }
+  .cost-table td:last-child { text-align: right; font-weight: 600; color: var(--cyan); }
+
+  .layui-form-label { color: var(--muted); }
+  .layui-input, .layui-select, .layui-textarea {
+    background: rgba(0,0,0,0.2) !important; border-color: var(--border) !important;
+    color: var(--text) !important;
+  }
+  .layui-form-select dl { background: var(--panel-solid) !important; }
+  .layui-form-select dl dd { color: var(--text) !important; }
+  .layui-form-select dl dd.layui-this { background: rgba(0,212,255,0.15) !important; color: var(--cyan) !important; }
+  .layui-form-select .layui-input { color: var(--text) !important; }
+
+  .lit-ref { font-size: 9px; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+  .slider-row { margin: 10px 0; }
+  .slider-row .slider-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .slider-row .slider-label b { color: var(--cyan); }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 1100px) { .two-col { grid-template-columns: 1fr; } .coral-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .data-source-bar {
+    font-size: 9px; color: var(--muted); padding: 4px 0;
+    border-top: 1px dashed rgba(148,163,184,0.15); margin-top: 8px;
+  }
+
+  /* Data source info icon (ℹ️) on metric cards */
+  .src-info {
+    display: inline-block; cursor: pointer; font-size: 11px; opacity: 0.55;
+    margin-left: 4px; transition: opacity .15s; user-select: none;
+  }
+  .src-info:hover { opacity: 1; }
+  .chem-card { position: relative; }
+  .chem-card .src-info { position: absolute; top: 4px; right: 6px; font-size: 10px; }
+
+  /* Reef segment switcher */
+  .seg-switcher { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .seg-nav-btn { background: rgba(0,212,255,0.1); border: 1px solid var(--border); color: var(--cyan);
+    width: 28px; height: 28px; border-radius: 4px; cursor: pointer; font-size: 11px;
+    display: flex; align-items: center; justify-content: center; transition: all .15s; padding: 0; }
+  .seg-nav-btn:hover:not(:disabled) { background: rgba(0,212,255,0.25); }
+  .seg-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .seg-select { background: rgba(0,0,0,0.25); border: 1px solid var(--border); color: var(--text);
+    border-radius: 4px; padding: 4px 8px; font-size: 12px; max-width: 220px; cursor: pointer;
+    outline: none; transition: border-color .15s; }
+  .seg-select:hover { border-color: rgba(0,212,255,0.4); }
+  .seg-select:focus { border-color: var(--cyan); }
+  .seg-select option { background: #0d1b2a; color: #e2e8f0; }
+</style>
+</head>
+<body>
+
+<!-- ======== Header ======== -->
+<div class="micro-header">
+  <a href="/" class="back-link">← <span data-i18n="back_map">Back to Map</span></a>
+  <div class="seg-title">
+    <h1 id="seg-name" data-i18n="loading_segment">Loading…</h1>
+    <div class="seg-meta">
+      <span data-i18n="id_label">ID</span>: <b id="seg-id">–</b> · <span data-i18n="coord">Coords</span>: <b id="seg-coords">–</b> ·
+      <span data-i18n="dhw_short">DHW</span>: <b id="seg-dhw">–</b> · <span data-i18n="score">Score</span>: <b id="seg-score">–</b>
+    </div>
+  </div>
+  <div class="seg-switcher">
+    <button id="prev-seg" class="seg-nav-btn" title="Previous reef by priority">&#9664;</button>
+    <select id="seg-select" class="seg-select" title="Select reef segment"></select>
+    <button id="next-seg" class="seg-nav-btn" title="Next reef by priority">&#9654;</button>
+  </div>
+  <button id="report-export-btn" class="layui-btn layui-btn-sm layui-btn-normal" title="Export Report">📄 <span data-i18n="report_export_btn">Report</span></button>
+  <button id="lang-btn" class="layui-btn layui-btn-primary layui-btn-sm reef-btn-ghost">中文</button>
+</div>
+
+<div class="micro-body">
+
+  <!-- ======== Row 1: Physical + Chemical ======== -->
+  <div class="two-col">
+
+    <!-- Panel 1: Physical Environment -->
+    <div class="micro-card">
+      <div class="micro-card-title">
+        <span>🌡️ <span data-i18n="p1_title">Physical Environment</span></span>
+        <span class="src-tag" id="p1-source">–</span>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <div>
+          <div style="font-size:10px; color:var(--muted);" data-i18n="p1_baa">NOAA Bleaching Alert Area</div>
+          <div id="baa-badge-wrap" style="margin-top:4px;">
+            <span class="baa-badge baa-0" id="baa-badge">–</span>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:10px; color:var(--muted);" data-i18n="p1_current">Current</div>
+          <div style="font-size:18px; font-weight:700; color:var(--cyan);" id="current-sst">–<span class="src-info" data-layer="noaa_crw_dhw" title="Data source">ℹ️</span></div>
+          <div style="font-size:10px; color:var(--muted);" id="current-dhw-label">DHW: –</div>
+        </div>
+      </div>
+
+      <div class="chart-box" id="chart-sst"></div>
+      <div style="font-size:10px; color:var(--muted); margin:4px 0 8px;" data-i18n="p1_sst_cap">Monthly SST climatology (°C)</div>
+
+      <div class="chart-box" id="chart-dhw"></div>
+      <div style="font-size:10px; color:var(--muted); margin:4px 0 8px;" data-i18n="p1_dhw_cap">DHW accumulation history (°C·week)</div>
+
+      <div style="display:flex; gap:12px; align-items:center; margin-top:8px;">
+        <div style="flex:1;">
+          <div style="font-size:10px; color:var(--muted);" data-i18n="p1_current_title">Currents <span class="src-info" data-layer="hycom_currents" title="Data source">ℹ️</span></div>
+          <div style="font-size:13px; color:var(--text);" id="current-info">–</div>
+        </div>
+        <div id="chart-current" style="width:120px; height:90px;"></div>
+      </div>
+
+      <div class="data-source-bar" id="p1-source-detail"></div>
+    </div>
+
+    <!-- Panel 2: Chemical Environment -->
+    <div class="micro-card">
+      <div class="micro-card-title">
+        <span>🧪 <span data-i18n="p2_title">Chemical Environment</span></span>
+        <span class="src-tag" data-i18n="p2_lit">Literature-anchored</span>
+      </div>
+      <div class="chem-panel-inner">
+        <div class="chem-grid" id="chem-grid">
+          <!-- filled by JS -->
+        </div>
+        <div style="font-size:10px; color:var(--muted); margin:10px 0 2px;" data-i18n="p2_trend_cap">Water Quality Trend (climatology reference)</div>
+        <div id="chart-chem-trend"></div>
+        <div class="lit-ref" id="chem-notes"></div>
+        <div class="data-source-bar" id="p2-source-detail"></div>
+      </div>
+    </div>
+
+  </div><!-- /two-col -->
+
+  <!-- ======== Row 2: Bleaching Monitoring ======== -->
+  <div class="micro-card">
+    <div class="micro-card-title">
+      <span>🪸 <span data-i18n="p3_title">Bleaching Monitoring</span></span>
+      <span class="src-tag" id="p3-source">–</span>
+    </div>
+
+    <!-- 4 reference images -->
+    <div class="coral-grid" id="coral-grid">
+      <div class="coral-img-card">
+        <img src="/static/img/coral/healthy.jpg" alt="healthy" />
+        <div class="coral-label">
+          <div class="coral-level" style="color:#10b981;" data-i18n="coral_healthy">Healthy</div>
+          <div class="coral-pct" data-i18n="p3_healthy_ref">~25% bleached</div>
+        </div>
+      </div>
+      <div class="coral-img-card">
+        <img src="/static/img/coral/mild.jpg" alt="mild" />
+        <div class="coral-label">
+          <div class="coral-level" style="color:#f59e0b;" data-i18n="coral_mild">Mild</div>
+          <div class="coral-pct" data-i18n="p3_mild_ref">~53% bleached</div>
+        </div>
+      </div>
+      <div class="coral-img-card">
+        <img src="/static/img/coral/moderate.jpg" alt="moderate" />
+        <div class="coral-label">
+          <div class="coral-level" style="color:#f97316;" data-i18n="coral_moderate">Moderate</div>
+          <div class="coral-pct" data-i18n="p3_mod_ref">~82% bleached</div>
+        </div>
+      </div>
+      <div class="coral-img-card">
+        <img src="/static/img/coral/severe.jpg" alt="severe" />
+        <div class="coral-label">
+          <div class="coral-level" style="color:#ef4444;" data-i18n="coral_severe">Severe</div>
+          <div class="coral-pct" data-i18n="p3_sev_ref">~98% bleached</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI upload -->
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-top:8px;">
+      <div>
+        <div style="font-size:11px; font-weight:700; color:var(--cyan); margin-bottom:6px;" data-i18n="p3_ai_title">🤖 On-device Bleaching Analyzer (HSV)</div>
+        <label class="ai-upload-zone" for="ai-file">
+          <div style="font-size:24px;">📷</div>
+          <div style="font-size:12px; color:var(--muted); margin-top:4px;" data-i18n="p3_upload_hint">Click to upload coral photo</div>
+          <input type="file" id="ai-file" accept="image/*" />
+        </label>
+        <div class="ai-result" id="ai-result">
+          <div style="display:flex; gap:12px; align-items:center;">
+            <div class="ai-big" id="ai-pct">–</div>
+            <div>
+              <span class="baa-badge" id="ai-severity">–</span>
+              <div style="font-size:10px; color:var(--muted); margin-top:4px;" id="ai-time">–</div>
+            </div>
+          </div>
+          <div style="font-size:10px; color:var(--muted); margin-top:6px;" id="ai-fractions"></div>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:11px; font-weight:700; color:var(--cyan); margin-bottom:6px;" data-i18n="p3_rhi_title">CoralCore RHI — 8 Dimensions</div>
+        <div class="chart-box-sm" id="chart-rhi"></div>
+        <div style="text-align:center; font-size:18px; font-weight:800; color:var(--cyan);" id="rhi-score">–</div>
+        <div style="text-align:center; font-size:10px; color:var(--muted);" data-i18n="p3_rhi_score">RHI Score</div>
+      </div>
+    </div>
+
+    <!-- Cover trend + events -->
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-top:12px;">
+      <div>
+        <div style="font-size:11px; font-weight:700; color:var(--cyan); margin-bottom:6px;" data-i18n="p3_cover_title">Coral Cover Trend (%)</div>
+        <div class="chart-box-sm" id="chart-cover"></div>
+      </div>
+      <div>
+        <div style="font-size:11px; font-weight:700; color:var(--cyan); margin-bottom:6px;" data-i18n="p3_events_title">Historical Bleaching Events</div>
+        <ul class="event-list" id="event-list">
+          <li style="justify-content:center; color:var(--muted);" data-i18n="p3_no_events">No event records</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="data-source-bar" id="p3-source-detail"></div>
+  </div>
+
+  <!-- ======== Row 3: Restoration Cost Calculator ======== -->
+  <div class="micro-card">
+    <div class="micro-card-title">
+      <span>💰 <span data-i18n="p4_title">Restoration Cost Calculator</span></span>
+      <span class="src-tag" data-i18n="p4_lit">Literature-based unit costs</span>
+    </div>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+      <!-- Form -->
+      <div>
+        <form class="layui-form" id="cost-form" lay-filter="costForm">
+          <div class="layui-form-item">
+            <label class="layui-form-label" data-i18n="p4_method">Method</label>
+            <div class="layui-input-block">
+              <select id="cost-method" name="cost_method" lay-filter="costMethod">
+                <option value="coral_gardening" data-i18n="method_gardening">Coral Gardening (珊瑚园艺)</option>
+                <option value="direct_transplantation" data-i18n="method_transplant">Direct Transplantation (直接移植)</option>
+                <option value="larval_enhancement" data-i18n="method_larval">Larval Enhancement (幼虫增强)</option>
+                <option value="artificial_reef" data-i18n="method_artificial">Artificial Reef (人工礁结构)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="slider-row">
+            <div class="slider-label">
+              <span data-i18n="p4_area">Restoration Area</span>
+              <b><span id="area-val">1000</span> m²</b>
+            </div>
+            <div id="slider-area"></div>
+          </div>
+
+          <div class="slider-row">
+            <div class="slider-label">
+              <span data-i18n="p4_survival">Expected Survival Rate</span>
+              <b><span id="survival-val">70</span>%</b>
+            </div>
+            <div id="slider-survival"></div>
+          </div>
+
+          <div class="layui-form-item">
+            <label class="layui-form-label" data-i18n="p4_density">Coral Density</label>
+            <div class="layui-input-block">
+              <input type="number" id="cost-density" class="layui-input" value="50" min="1" max="500" />
+            </div>
+            <div style="font-size:9px; color:var(--muted); padding-left:110px;" data-i18n="p4_density_unit">corals / m²</div>
+          </div>
+        </form>
+
+        <div class="lit-ref">
+          <b data-i18n="unit_cost_refs">Unit cost references:</b><br/>
+          • <span data-i18n="ref_community">Community low-cost: ~$9,200/ha ($0.92/m²)</span><br/>
+          • <span data-i18n="ref_developing">Developing country conventional: ~$160,000/ha ($16/m²)</span><br/>
+          • <span data-i18n="ref_per_coral">Single coral: $0.15–$178; S. China Sea: ¥100–500/株</span><br/>
+          • <span data-i18n="ref_median">Median project: ~$93k/yr · 1 ha · 3 yrs (Bayraktarov et al. 2016)</span>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div>
+        <div class="cost-total">
+          <div class="cost-label" data-i18n="p4_total">Estimated Total Cost</div>
+          <div class="cost-num" id="cost-total-num">$0</div>
+          <div class="cost-sub">
+            <span data-i18n="p4_surviving">Surviving corals</span>: <b id="cost-surviving">0</b> ·
+            $<span id="cost-per-coral">0</span>/<span data-i18n="p4_per_coral">coral</span>
+          </div>
+        </div>
+
+        <table class="cost-table">
+          <thead>
+            <tr><th data-i18n="p4_breakdown">Cost Breakdown</th><th data-i18n="usd">USD</th></tr>
+          </thead>
+          <tbody id="cost-breakdown-body">
+            <tr><td data-i18n="p4_materials">Materials (corals, supplies)</td><td id="bd-materials">$0</td></tr>
+            <tr><td data-i18n="p4_labor">Labor (divers)</td><td id="bd-labor">$0</td></tr>
+            <tr><td data-i18n="p4_equipment">Equipment (boats, gear)</td><td id="bd-equipment">$0</td></tr>
+            <tr><td data-i18n="p4_monitoring">Monitoring (3 yr)</td><td id="bd-monitoring">$0</td></tr>
+            <tr><td data-i18n="p4_maintenance">Maintenance (3 yr)</td><td id="bd-maintenance">$0</td></tr>
+          </tbody>
+        </table>
+
+        <div style="display:flex; gap:10px; margin-top:10px;">
+          <button class="layui-btn layui-btn-fluid reef-btn-outline" id="save-cost-btn">
+            💾 <span data-i18n="p4_save">Save Configuration</span>
+          </button>
+        </div>
+        <div id="save-status" style="text-align:center; font-size:11px; margin-top:6px; min-height:16px;"></div>
+        <div class="data-source-bar" id="p4-last-updated"></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /micro-body -->
+
+<script src="https://cdn.staticfile.org/layui/2.9.16/layui.js"></script>
+<script src="/static/lib/color_analyzer.js"></script>
+<script>
+(function(){
+  'use strict';
+
+  // ---------- i18n ----------
+  const I18N = {
+    en: {
+      back_map: "Back to Map", coord: "Coords", score: "Score",
+      p1_title: "Physical Environment", p1_source: "",
+      p1_baa: "NOAA Bleaching Alert Area", p1_current: "Current",
+      p1_sst_cap: "Monthly SST climatology (°C)", p1_dhw_cap: "DHW accumulation history (°C·week)",
+      p1_current_title: "Currents",
+      p2_title: "Chemical Environment", p2_lit: "Literature-anchored",
+      p2_trend_cap: "Water Quality Trend (climatology reference)",
+      p3_title: "Bleaching Monitoring",
+      p3_healthy_ref: "~25% bleached", p3_mild_ref: "~53% bleached",
+      p3_mod_ref: "~82% bleached", p3_sev_ref: "~98% bleached",
+      p3_ai_title: "🤖 On-device Bleaching Analyzer (HSV)",
+      p3_upload_hint: "Click to upload coral photo",
+      p3_rhi_title: "CoralCore RHI — 8 Dimensions", p3_rhi_score: "RHI Score",
+      p3_cover_title: "Coral Cover Trend (%)", p3_events_title: "Historical Bleaching Events",
+      p3_no_events: "No event records",
+      p4_title: "Restoration Cost Calculator", p4_lit: "Literature-based unit costs",
+      p4_method: "Method", p4_area: "Restoration Area", p4_survival: "Expected Survival Rate",
+      p4_density: "Coral Density", p4_density_unit: "corals / m²",
+      p4_total: "Estimated Total Cost", p4_surviving: "Surviving corals", p4_per_coral: "coral",
+      p4_breakdown: "Cost Breakdown", p4_materials: "Materials (corals, supplies)",
+      p4_labor: "Labor (divers)", p4_equipment: "Equipment (boats, gear)",
+      p4_monitoring: "Monitoring (3 yr)", p4_maintenance: "Maintenance (3 yr)",
+      p4_save: "Save Configuration",
+      method_gardening: "Coral Gardening", method_transplant: "Direct Transplantation",
+      method_larval: "Larval Enhancement", method_artificial: "Artificial Reef",
+      ref_community: "Community low-cost: ~$9,200/ha ($0.92/m²)",
+      ref_developing: "Developing country conventional: ~$160,000/ha ($16/m²)",
+      ref_per_coral: "Single coral: $0.15–$178; S. China Sea: ¥100–500/株",
+      ref_median: "Median project: ~$93k/yr · 1 ha · 3 yrs (Bayraktarov et al. 2016)",
+      baa_levels: ["No Stress","Watch","Bleaching Watch 1","Bleaching Watch 2","Bleaching Warning","Bleaching Event"],
+      chem_ok: "OK", chem_warn: "CAUTION", chem_danger: "DANGER",
+      sev_healthy: "HEALTHY", sev_mild: "MILD", sev_moderate: "MODERATE", sev_severe: "SEVERE",
+      saved: "✓ Saved successfully", save_err: "✗ Save failed", loading: "Loading…",
+      src_measured: "Measured", src_literature: "Literature", src_simulated: "Simulated",
+      rhi_coral_cover: "Coral Cover", rhi_macroalgae: "Macroalgae↓",
+      rhi_fish_diversity: "Fish Diversity", rhi_structural_complexity: "Structural Complexity",
+      rhi_water_quality: "Water Quality", rhi_bleaching_resistance: "Bleach Resistance",
+      rhi_recovery_trajectory: "Recovery Trajectory", rhi_anthropogenic_impact: "Low Impact",
+      source_label: "Source", no_env_data: "No environmental data",
+      last_saved: "Last saved", ai_analysis_failed: "Analysis failed",
+      frac_white: "White", frac_pale: "Pale", frac_pigmented: "Pigmented", frac_water: "Water excluded",
+      coral_healthy: "Healthy", coral_mild: "Mild", coral_moderate: "Moderate", coral_severe: "Severe",
+      id_label: "ID", dhw_short: "DHW", usd: "USD",
+      unit_cost_refs: "Unit cost references:", loading_segment: "Loading…", n_a: "N/A",
+      chem_notes: "pH: literature tropical seawater ~8.0–8.2 · Ωarag: aragonite saturation >3.0 healthy · DO: >4.0 ml/L · Chl-a: oligotrophic <0.5 mg/m³"
+    },
+    zh: {
+      back_map: "← 返回地图", coord: "坐标", score: "评分",
+      p1_title: "物理环境", p1_source: "",
+      p1_baa: "NOAA 白化预警等级 (BAA)", p1_current: "当前",
+      p1_sst_cap: "月均海表温度 SST (°C)", p1_dhw_cap: "DHW 累积历史 (°C·周)",
+      p1_current_title: "海流",
+      p2_title: "化学环境", p2_lit: "文献参考值",
+      p2_trend_cap: "水质趋势（气候态参考）",
+      p3_title: "珊瑚白化监测",
+      p3_healthy_ref: "~25% 白化", p3_mild_ref: "~53% 白化",
+      p3_mod_ref: "~82% 白化", p3_sev_ref: "~98% 白化",
+      p3_ai_title: "🤖 端侧白化分析 (HSV)",
+      p3_upload_hint: "点击上传珊瑚照片",
+      p3_rhi_title: "CoralCore RHI — 8 维度", p3_rhi_score: "RHI 综合分",
+      p3_cover_title: "珊瑚覆盖度趋势 (%)", p3_events_title: "历史白化事件",
+      p3_no_events: "无事件记录",
+      p4_title: "修复成本核算器", p4_lit: "基于文献单位成本",
+      p4_method: "修复方法", p4_area: "修复面积", p4_survival: "预期存活率",
+      p4_density: "珊瑚密度", p4_density_unit: "株 / m²",
+      p4_total: "预计总成本", p4_surviving: "存活珊瑚", p4_per_coral: "株",
+      p4_breakdown: "成本明细", p4_materials: "材料（珊瑚苗、物资）",
+      p4_labor: "人工（潜水员）", p4_equipment: "设备（船只、装备）",
+      p4_monitoring: "监测（3年）", p4_maintenance: "维护（3年）",
+      p4_save: "💾 保存配置",
+      method_gardening: "珊瑚园艺", method_transplant: "直接移植",
+      method_larval: "幼虫增强", method_artificial: "人工礁结构",
+      ref_community: "社区低成本: ~$9,200/公顷 ($0.92/m²)",
+      ref_developing: "发展中国家常规: ~$160,000/公顷 ($16/m²)",
+      ref_per_coral: "单株成本: $0.15–$178; 中国南海: ¥100–500/株",
+      ref_median: "中位项目: ~$93k/年 · 1公顷 · 3年 (Bayraktarov et al. 2016)",
+      baa_levels: ["无压力","关注","白化关注一级","白化关注二级","白化预警","白化事件"],
+      chem_ok: "正常", chem_warn: "注意", chem_danger: "危险",
+      sev_healthy: "健康", sev_mild: "轻度", sev_moderate: "中度", sev_severe: "重度",
+      saved: "✓ 保存成功", save_err: "✗ 保存失败", loading: "加载中…",
+      src_measured: "实测", src_literature: "文献", src_simulated: "模拟",
+      rhi_coral_cover: "珊瑚覆盖", rhi_macroalgae: "大型藻类↓",
+      rhi_fish_diversity: "鱼类多样性", rhi_structural_complexity: "结构复杂度",
+      rhi_water_quality: "水质", rhi_bleaching_resistance: "白化抗性",
+      rhi_recovery_trajectory: "恢复轨迹", rhi_anthropogenic_impact: "人为影响低",
+      source_label: "来源", no_env_data: "无环境数据",
+      last_saved: "上次保存", ai_analysis_failed: "分析失败",
+      frac_white: "白色", frac_pale: "浅色", frac_pigmented: "色素", frac_water: "水体剔除",
+      coral_healthy: "健康", coral_mild: "轻度", coral_moderate: "中度", coral_severe: "重度",
+      id_label: "编号", dhw_short: "DHW", usd: "USD",
+      unit_cost_refs: "单位成本参考：", loading_segment: "加载中…", n_a: "无数据",
+      chem_notes: "pH：文献热带海水 ~8.0–8.2 · Ωarag：文石饱和度 >3.0 为健康 · DO：>4.0 ml/L · Chl-a：寡营养 <0.5 mg/m³"
+    }
+  };
+  let lang = 'en';
+  try {
+    const saved = localStorage.getItem('reeftriage_lang');
+    if (saved === 'en' || saved === 'zh') lang = saved;
+  } catch (e) { /* ignore */ }
+
+  function t(key) {
+    return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key;
+  }
+
+  // ---------- URL param ----------
+  const params = new URLSearchParams(location.search);
+  const SEG_ID = params.get('segment') || 'R01';
+  const API = 'http://127.0.0.1:8000';
+
+  // ---------- ECharts common ----------
+  const AXIS_COLOR = '#94a3b8';
+  const SPLIT_COLOR = 'rgba(148,163,184,0.1)';
+  function baseGrid() { return { left: 40, right: 16, top: 24, bottom: 28 }; }
+  function baseAxis() {
+    return {
+      axisLine: { lineStyle: { color: 'rgba(148,163,184,0.3)' } },
+      axisLabel: { color: AXIS_COLOR, fontSize: 10 },
+      splitLine: { lineStyle: { color: SPLIT_COLOR } }
+    };
+  }
+  const charts = {};
+  function makeChart(id) {
+    const el = document.getElementById(id);
+    if (!el) return null;
+    const c = echarts.init(el, null, { renderer: 'canvas' });
+    charts[id] = c;
+    return c;
+  }
+
+  // ---------- Cost model ----------
+  // Unit cost per method (USD/m²) — anchored to literature ranges
+  const METHOD_UNIT_COST = {
+    coral_gardening: 2.0,       // community gardening mid-range
+    direct_transplantation: 16.0, // conventional developing country
+    larval_enhancement: 8.0,    // larval seeding
+    artificial_reef: 25.0      // structure + deployment
+  };
+  // Fixed adders (USD) scaled by area
+  function calcCost(method, area, survival, density) {
+    const unit = METHOD_UNIT_COST[method] || 2;
+    const material = area * unit * 0.35;           // 35% materials
+    const labor = area * unit * 0.40;                // 40% labor (divers)
+    const equipment = Math.max(2000, area * 0.5);   // boat + gear
+    const monitoring = Math.max(1000, area * 1.0);  // 3yr monitoring
+    const maintenance = Math.max(1000, area * 0.8); // 3yr maintenance
+    const total = material + labor + equipment + monitoring + maintenance;
+    const surviving = area * density * survival;
+    const perCoral = surviving > 0 ? total / surviving : 0;
+    return { material, labor, equipment, monitoring, maintenance, total, surviving, perCoral };
+  }
+
+  let state = {
+    method: 'coral_gardening',
+    area: 1000,
+    survival: 0.7,
+    density: 50
+  };
+  let lastEnvData = null;
+
+  // ---------- Load segment basic info ----------
+  async function loadSegment() {
+    try {
+      const r = await fetch(`${API}/api/segments/${SEG_ID}`);
+      const d = await r.json();
+      document.title = `Reef Lab · ${d.name || SEG_ID}`;
+      document.getElementById('seg-name').textContent = (d.name_zh && lang==='zh') ? d.name_zh : (d.name || SEG_ID);
+      document.getElementById('seg-id').textContent = d.segment_id || SEG_ID;
+      document.getElementById('seg-coords').textContent = `${d.lat?.toFixed(5)}, ${d.lon?.toFixed(5)}`;
+      document.getElementById('seg-dhw').textContent = (typeof d.current_dhw === 'number') ? d.current_dhw.toFixed(2) : '–';
+      document.getElementById('seg-score').textContent = (typeof d.score === 'number') ? d.score.toFixed(1) : (d.score ?? '–');
+    } catch(e) { console.error('loadSegment', e); }
+  }
+
+  // ---------- Load environmental ----------
+  async function loadEnvironmental() {
+    try {
+      const r = await fetch(`${API}/api/segments/${SEG_ID}/environmental`);
+      const d = await r.json();
+      if (d.data_source === 'unavailable' || d.message) {
+        document.getElementById('p1-source').textContent = t('n_a');
+        document.getElementById('p2-source-detail').textContent = t('no_env_data');
+        return;
+      }
+
+      document.getElementById('p1-source').textContent =
+        lang==='zh' ? 'CRW实测+文献' : (d.data_source || '');
+      document.getElementById('p1-source-detail').textContent =
+        t('source_label') + ': ' + (d.provenance_note || d.data_source || 'literature').substring(0, 200);
+      document.getElementById('p2-source-detail').textContent =
+        t('source_label') + ': literature / CRW v3.1 / Sulu Sea climatology';
+
+      // SST chart
+      const sst = d.sst || {};
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const monthly = sst.monthly || [];
+      const sstChart = makeChart('chart-sst');
+      if (sstChart && monthly.length) {
+        sstChart.setOption({
+          backgroundColor: 'transparent',
+          grid: baseGrid(),
+          tooltip: { trigger: 'axis', backgroundColor: '#0d1b2a', borderColor: '#00d4ff', textStyle: { color: '#e2e8f0', fontSize: 11 } },
+          xAxis: { type: 'category', data: months, ...baseAxis() },
+          yAxis: { type: 'value', name: '°C', ...baseAxis(), nameTextStyle: { color: AXIS_COLOR } },
+          series: [{
+            type: 'line', data: monthly, smooth: true,
+            lineStyle: { color: '#00d4ff', width: 2 },
+            areaStyle: { color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(0,212,255,0.35)'},{offset:1,color:'rgba(0,212,255,0)'}]) },
+            itemStyle: { color: '#00d4ff' },
+            markLine: { data: [{ yAxis: sst.mean, label: { formatter: 'mean '+(typeof sst.mean==='number'?sst.mean.toFixed(2):sst.mean)+'°C', color: '#f59e0b' }, lineStyle: { color: '#f59e0b', type: 'dashed' } }] }
+          }]
+        });
+      }
+
+      // Current SST display
+      const cur = await fetch(`${API}/api/segments/${SEG_ID}`);
+      const seg = await cur.json();
+      const _curSst = seg.current_sst ?? sst.mean;
+      document.getElementById('current-sst').textContent = (typeof _curSst === 'number' ? _curSst.toFixed(2) : (_curSst ?? '–')) + '°C';
+      document.getElementById('current-dhw-label').textContent = 'DHW: ' + (seg.current_dhw ?? d.dhw_max_observed ?? 0).toFixed(2);
+
+      // DHW chart
+      const dhwHist = d.dhw_history || [];
+      const dhwChart = makeChart('chart-dhw');
+      if (dhwChart && dhwHist.length) {
+        dhwChart.setOption({
+          backgroundColor: 'transparent',
+          grid: baseGrid(),
+          tooltip: { trigger: 'axis', backgroundColor: '#0d1b2a', borderColor: '#00d4ff', textStyle: { color: '#e2e8f0', fontSize: 11 } },
+          xAxis: { type: 'category', data: dhwHist.map(h=>h.date), ...baseAxis(), axisLabel: { color: AXIS_COLOR, fontSize: 9, rotate: 45 } },
+          yAxis: { type: 'value', name: '°C·wk', ...baseAxis(), nameTextStyle: { color: AXIS_COLOR } },
+          series: [{
+            type: 'line', data: dhwHist.map(h=>h.dhw), smooth: false, step: 'end',
+            lineStyle: { color: '#f97316', width: 2 },
+            areaStyle: { color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(249,115,22,0.35)'},{offset:1,color:'rgba(249,115,22,0)'}]) },
+            itemStyle: { color: '#f97316' },
+            markLine: { data: [
+              { yAxis: 4, label: { formatter: 'BAA-4', color: '#ef4444', fontSize: 9 }, lineStyle: { color: '#ef4444', type: 'dashed' } },
+              { yAxis: 8, label: { formatter: 'BAA-5', color: '#dc2626', fontSize: 9 }, lineStyle: { color: '#dc2626', type: 'dashed' } }
+            ]}
+          }]
+        });
+      }
+
+      // BAA level from current DHW
+      const curDhw = seg.current_dhw ?? (dhwHist.length ? dhwHist[dhwHist.length-1].dhw : 0);
+      const baaLevel = getBaaLevel(curDhw);
+      const badge = document.getElementById('baa-badge');
+      badge.className = 'baa-badge baa-' + baaLevel;
+      badge.textContent = 'BAA-' + baaLevel + ' · ' + I18N[lang].baa_levels[baaLevel];
+
+      // Current direction gauge
+      const curData = d.current || {};
+      document.getElementById('current-info').innerHTML =
+        `<b style="color:var(--cyan)">${typeof curData.speed_mean === 'number' ? curData.speed_mean.toFixed(2) : (curData.speed_mean ?? '–')}</b> m/s · ${typeof curData.direction_mean === 'number' ? Math.round(curData.direction_mean) : (curData.direction_mean ?? '–')}°`;
+      const curChart = echarts.init(document.getElementById('chart-current'));
+      curChart.setOption({
+        backgroundColor: 'transparent',
+        series: [{
+          type: 'gauge', startAngle: 90, endAngle: -270, min: 0, max: 360,
+          radius: '90%', center: ['50%','55%'],
+          pointer: { show: true, length: '60%', width: 4, itemStyle: { color: '#00d4ff' } },
+          axisLine: { lineStyle: { width: 6, color: [[1, 'rgba(0,212,255,0.15)']] } },
+          axisTick: { show: false }, splitLine: { show: false }, axisLabel: { show: false },
+          detail: { show: false },
+          data: [{ value: curData.direction_mean || 0 }]
+        }]
+      });
+
+      // Chemical cards
+      lastEnvData = d;
+      renderChem(d);
+
+    } catch(e) { console.error('loadEnvironmental', e); }
+  }
+
+  function getBaaLevel(dhw) {
+    if (dhw >= 8) return 5;
+    if (dhw >= 4) return 4;
+    if (dhw >= 3) return 3;
+    if (dhw >= 2) return 2;
+    if (dhw >= 1) return 1;
+    return 0;
+  }
+
+  function renderChem(d) {
+    const grid = document.getElementById('chem-grid');
+    const items = [
+      { key: 'pH', val: d.ph?.mean, range: d.ph?.range, unit: '', ok: v => v>=8.0 && v<=8.2, warn: v => v>=7.8 && v<8.0, danger: v => v<7.8 },
+      { key: 'Ωarag', val: d.arag?.mean, range: null, unit: '', ok: v => v>3.0, warn: v => v>=2.5 && v<=3.0, danger: v => v<2.5 },
+      { key: 'DO', val: d.do?.mean, range: d.do?.range, unit: 'ml/L', ok: v => v>=4.0, warn: v => v>=3.0 && v<4.0, danger: v => v<3.0 },
+      { key: 'Salinity', val: d.salinity?.mean, range: d.salinity?.range, unit: 'PSU', ok: v => v>=33 && v<=35, warn: v => (v>=31&&v<33)||(v>35&&v<=37), danger: v => v<31 || v>37 },
+      { key: 'Chl-a', val: d.chlorophyll?.mean, range: d.chlorophyll?.range, unit: 'mg/m³', ok: v => v<0.5, warn: v => v>=0.5 && v<1.0, danger: v => v>=1.0 }
+    ];
+    grid.innerHTML = items.map(it => {
+      const v = it.val;
+      let cls = 'ok', status = I18N[lang].chem_ok;
+      if (v != null) {
+        if (it.danger(v)) { cls = 'danger'; status = I18N[lang].chem_danger; }
+        else if (it.warn(v)) { cls = 'warn'; status = I18N[lang].chem_warn; }
+      }
+      const rng = it.range ? `[${typeof it.range[0]==='number'?it.range[0].toFixed(2):it.range[0]}–${typeof it.range[1]==='number'?it.range[1].toFixed(2):it.range[1]}]` : '';
+      return `<div class="chem-card ${cls}">
+        <span class="src-info" data-layer="copernicus_phy_bgc" title="Data source">ℹ️</span>
+        <div class="chem-val">${v != null ? (typeof v==='number' ? v.toFixed(2) : v) : '–'}<span class="chem-unit"> ${it.unit}</span></div>
+        <div class="chem-name">${it.key}</div>
+        <div class="chem-range">${rng}</div>
+        <span class="chem-status">${status}</span>
+      </div>`;
+    }).join('');
+    document.getElementById('chem-notes').innerHTML = t('chem_notes');
+  }
+
+  // ---------- Chemical climatology trend chart (simulated reference) ----------
+  function renderChemTrend() {
+    const chart = makeChart('chart-chem-trend');
+    if (!chart) return;
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    // Simulated Sulu Sea tropical climatology values
+    const sst = [27.2, 27.5, 28.1, 28.8, 29.3, 29.5, 29.2, 29.0, 28.7, 28.3, 27.8, 27.4];
+    const ph  = [8.12, 8.10, 8.08, 8.05, 8.03, 8.02, 8.04, 8.06, 8.09, 8.11, 8.13, 8.13];
+    const sal = [34.2, 34.3, 34.1, 33.8, 33.5, 33.2, 33.0, 33.1, 33.4, 33.7, 34.0, 34.2];
+    chart.setOption({
+      backgroundColor: 'transparent',
+      grid: { left: 36, right: 44, top: 26, bottom: 24 },
+      legend: { data: ['SST °C','pH','Sal PSU'], textStyle: { color: '#94a3b8', fontSize: 10 }, top: 0, right: 0, itemWidth: 12, itemHeight: 8 },
+      tooltip: { trigger: 'axis', backgroundColor: '#0d1b2a', borderColor: '#00d4ff', textStyle: { color: '#e2e8f0', fontSize: 11 } },
+      xAxis: { type: 'category', data: months, ...baseAxis() },
+      yAxis: [
+        { type: 'value', name: '°C', min: 25, max: 31, ...baseAxis(), nameTextStyle: { color: AXIS_COLOR } },
+        { type: 'value', name: 'pH', min: 7.9, max: 8.2, ...baseAxis(), nameTextStyle: { color: AXIS_COLOR }, splitLine: { show: false } },
+        { type: 'value', name: 'PSU', min: 32, max: 35, ...baseAxis(), nameTextStyle: { color: AXIS_COLOR }, splitLine: { show: false }, offset: 28 }
+      ],
+      series: [
+        { name: 'SST °C', type: 'line', data: sst, smooth: true, yAxisIndex: 0, lineStyle: { color: '#00d4ff', width: 2 }, itemStyle: { color: '#00d4ff' } },
+        { name: 'pH', type: 'line', data: ph, smooth: true, yAxisIndex: 1, lineStyle: { color: '#10b981', width: 2 }, itemStyle: { color: '#10b981' } },
+        { name: 'Sal PSU', type: 'line', data: sal, smooth: true, yAxisIndex: 2, lineStyle: { color: '#f59e0b', width: 2 }, itemStyle: { color: '#f59e0b' } }
+      ]
+    });
+  }
+
+  // ---------- Load bleaching monitoring ----------
+  async function loadMonitoring() {
+    try {
+      const r = await fetch(`${API}/api/segments/${SEG_ID}/bleaching-monitoring`);
+      const d = await r.json();
+      if (d.status === 'unavailable') return;
+
+      document.getElementById('p3-source').textContent =
+        lang==='zh' ? '文献锚定估算' : (d.data_source || 'literature');
+      document.getElementById('p3-source-detail').textContent =
+        t('source_label') + ': ' + (d.provenance_note || 'literature-anchored estimates').substring(0, 250);
+
+      // RHI score
+      document.getElementById('rhi-score').textContent = (typeof d.rhi_score === 'number' ? d.rhi_score.toFixed(1) : (d.rhi_score ?? '–')) + ' / 100';
+
+      // RHI 8 components horizontal bar
+      const comps = d.rhi_components || {};
+      const rhiChart = makeChart('chart-rhi');
+      if (rhiChart) {
+        const labels = Object.keys(comps).map(k => I18N[lang]['rhi_'+k] || k);
+        const vals = Object.values(comps);
+        rhiChart.setOption({
+          backgroundColor: 'transparent',
+          grid: { left: 90, right: 20, top: 4, bottom: 4 },
+          tooltip: { backgroundColor: '#0d1b2a', borderColor: '#00d4ff', textStyle: { color: '#e2e8f0', fontSize: 10 } },
+          xAxis: { type: 'value', max: 100, ...baseAxis(), splitLine: { lineStyle: { color: SPLIT_COLOR } } },
+          yAxis: { type: 'category', data: labels, ...baseAxis(), axisLabel: { color: AXIS_COLOR, fontSize: 9 } },
+          series: [{
+            type: 'bar', data: vals, barWidth: 10,
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:'rgba(0,212,255,0.3)'},{offset:1,color:'#00d4ff'}]),
+              borderRadius: [0,4,4,0]
+            },
+            label: { show: true, position: 'right', color: '#00d4ff', fontSize: 9 }
+          }]
+        });
+      }
+
+      // Cover trend
+      const trend = d.cover_trend || [];
+      const coverChart = makeChart('chart-cover');
+      if (coverChart && trend.length) {
+        coverChart.setOption({
+          backgroundColor: 'transparent',
+          grid: baseGrid(),
+          tooltip: { trigger: 'axis', backgroundColor: '#0d1b2a', borderColor: '#00d4ff', textStyle: { color: '#e2e8f0', fontSize: 11 } },
+          xAxis: { type: 'category', data: trend.map(t=>t.year), ...baseAxis() },
+          yAxis: { type: 'value', name: '%', ...baseAxis(), nameTextStyle: { color: AXIS_COLOR } },
+          series: [{
+            type: 'line', data: trend.map(t=>t.cover), smooth: true,
+            lineStyle: { color: '#10b981', width: 2 },
+            areaStyle: { color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(16,185,129,0.3)'},{offset:1,color:'rgba(16,185,129,0)'}]) },
+            itemStyle: { color: '#10b981' }
+          }]
+        });
+      }
+
+      // Events
+      const events = d.bleaching_events || [];
+      const el = document.getElementById('event-list');
+      if (events.length) {
+        el.innerHTML = events.map(ev => `<li class="sev-${ev.severity}">
+          <div><b>${ev.year}</b> · ${ev.severity} · DHW ${typeof ev.dhw==='number'?ev.dhw.toFixed(1):ev.dhw}</div>
+          <div class="event-note">${ev.note || ''}</div>
+        </li>`).join('');
+      }
+    } catch(e) { console.error('loadMonitoring', e); }
+  }
+
+  // ---------- AI color analyzer ----------
+  const analyzer = new CoralColorAnalyzer();
+  document.getElementById('ai-file').addEventListener('change', async function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    try {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
+      const result = await analyzer.analyzeImage(img);
+      const box = document.getElementById('ai-result');
+      box.classList.add('show');
+      document.getElementById('ai-pct').textContent = result.bleachingPercent + '%';
+      const sevMap = { healthy: 'sev_healthy', mild: 'sev_mild', moderate: 'sev_moderate', severe: 'sev_severe' };
+      const badge = document.getElementById('ai-severity');
+      const sevClass = { healthy: 'baa-0', mild: 'baa-2', moderate: 'baa-3', severe: 'baa-5' };
+      badge.className = 'baa-badge ' + sevClass[result.severity];
+      badge.textContent = I18N[lang][sevMap[result.severity]] || result.severity;
+      document.getElementById('ai-time').textContent = new Date().toLocaleString();
+      document.getElementById('ai-fractions').innerHTML =
+        `${t('frac_white')}: ${(result.fractions.white*100).toFixed(1)}% · ${t('frac_pale')}: ${(result.fractions.pale*100).toFixed(1)}% · ${t('frac_pigmented')}: ${(result.fractions.pigmented*100).toFixed(1)}% · ${t('frac_water')}: ${(result.fractions.water*100).toFixed(1)}%`;
+    } catch(err) { console.error('AI analyze', err); alert(t('ai_analysis_failed') + ': ' + err.message); }
+    finally { URL.revokeObjectURL(url); }
+  });
+
+  // ---------- Cost calculator ----------
+  function updateCostDisplay() {
+    const c = calcCost(state.method, state.area, state.survival, state.density);
+    document.getElementById('cost-total-num').textContent = '$' + Math.round(c.total).toLocaleString();
+    document.getElementById('cost-surviving').textContent = Math.round(c.surviving).toLocaleString();
+    document.getElementById('cost-per-coral').textContent = c.perCoral.toFixed(2);
+    document.getElementById('bd-materials').textContent = '$' + Math.round(c.material).toLocaleString();
+    document.getElementById('bd-labor').textContent = '$' + Math.round(c.labor).toLocaleString();
+    document.getElementById('bd-equipment').textContent = '$' + Math.round(c.equipment).toLocaleString();
+    document.getElementById('bd-monitoring').textContent = '$' + Math.round(c.monitoring).toLocaleString();
+    document.getElementById('bd-maintenance').textContent = '$' + Math.round(c.maintenance).toLocaleString();
+  }
+
+  async function loadSavedCost() {
+    try {
+      const r = await fetch(`${API}/api/segments/${SEG_ID}/restoration-cost`);
+      const d = await r.json();
+      if (d && d.method) {
+        state.method = d.method || 'coral_gardening';
+        state.area = d.area_m2 || 1000;
+        state.survival = d.survival_rate ?? 0.7;
+        state.density = d.coral_density || 50;
+        // UI
+        layui.form.val('costForm', { cost_method: state.method });
+        document.getElementById('cost-density').value = state.density;
+        document.getElementById('area-val').textContent = state.area;
+        document.getElementById('survival-val').textContent = Math.round(state.survival*100);
+        if (d.last_updated) {
+          document.getElementById('p4-last-updated').textContent = t('last_saved') + ': ' + d.last_updated;
+        }
+      }
+    } catch(e) { console.error('loadSavedCost', e); }
+  }
+
+  // ---------- Init Layui ----------
+  layui.use(['form', 'slider'], function() {
+    const form = layui.form;
+    const slider = layui.slider;
+    function renderSliders() {
+      slider.render({
+        elem: '#slider-area',
+        type: 'range', value: state.area, min: 100, max: 10000, step: 100,
+        change: function(val) { state.area = val; document.getElementById('area-val').textContent = val; updateCostDisplay(); }
+      });
+      slider.render({
+        elem: '#slider-survival',
+        type: 'range', value: Math.round(state.survival*100), min: 0, max: 100, step: 5,
+        change: function(val) { state.survival = val/100; document.getElementById('survival-val').textContent = val; updateCostDisplay(); }
+      });
+    }
+    renderSliders();
+
+    // Method change
+    form.on('select(costMethod)', function(data) {
+      state.method = data.value;
+      updateCostDisplay();
+    });
+
+    // Density input
+    document.getElementById('cost-density').addEventListener('input', function(e) {
+      state.density = parseFloat(e.target.value) || 50;
+      updateCostDisplay();
+    });
+
+    // Save
+    document.getElementById('save-cost-btn').addEventListener('click', async function() {
+      const c = calcCost(state.method, state.area, state.survival, state.density);
+      const payload = {
+        method: state.method,
+        area_m2: state.area,
+        survival_rate: state.survival,
+        coral_density: state.density,
+        total_cost: Math.round(c.total),
+        cost_breakdown: {
+          materials: Math.round(c.material), labor: Math.round(c.labor),
+          equipment: Math.round(c.equipment), monitoring: Math.round(c.monitoring),
+          maintenance: Math.round(c.maintenance)
+        },
+        cost_per_coral: Math.round(c.perCoral * 100) / 100
+      };
+      const statusEl = document.getElementById('save-status');
+      try {
+        const r = await fetch(`${API}/api/segments/${SEG_ID}/restoration-cost`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (r.ok) {
+          statusEl.textContent = I18N[lang].saved;
+          statusEl.style.color = '#10b981';
+          const resp = await r.json();
+          if (resp.restoration_plan?.last_updated) {
+            document.getElementById('p4-last-updated').textContent = t('last_saved') + ': ' + resp.restoration_plan.last_updated;
+          }
+        } else {
+          throw new Error('HTTP ' + r.status);
+        }
+      } catch(e) {
+        statusEl.textContent = I18N[lang].save_err + ': ' + e.message;
+        statusEl.style.color = '#ef4444';
+      }
+    });
+
+    // Load saved config, then re-render sliders + form
+    loadSavedCost().then(() => {
+      renderSliders();
+      form.val('costForm', { cost_method: state.method });
+      form.render('select');
+      updateCostDisplay();
+    });
+
+    // Initial cost display
+    updateCostDisplay();
+  });
+
+  // ---------- Data source info popups (from /api/metadata) ----------
+  let metadataLayers = null;
+  function loadMetadata() {
+    fetch(`${API}/api/metadata`).then(r => r.json()).then(d => {
+      metadataLayers = {};
+      (d.layers || []).forEach(l => { metadataLayers[l.id] = l; });
+    }).catch(e => console.warn('metadata load failed', e));
+  }
+  function showLayerPopup(layerId) {
+    const layer = metadataLayers && metadataLayers[layerId];
+    if (!layer) {
+      layui.layer.msg('Metadata not loaded yet', { icon: 7 });
+      return;
+    }
+    const desc = (lang === 'zh' && layer.description_zh) ? layer.description_zh : layer.description;
+    const html = `<div style="padding:14px 18px;color:#e2e8f0;font-size:12px;line-height:1.6;">
+      <h3 style="color:#00d4ff;margin:0 0 2px;font-size:14px;">${layer.name}</h3>
+      <div style="color:#94a3b8;font-size:11px;margin-bottom:10px;">${layer.name_zh || ''}</div>
+      <div style="margin-bottom:10px;">${desc || ''}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;font-size:11px;">
+        <div><b style="color:#94a3b8;">Source:</b> ${layer.source}</div>
+        <div><b style="color:#94a3b8;">Time:</b> ${layer.time_range}</div>
+        <div><b style="color:#94a3b8;">Spatial:</b> ${layer.spatial_resolution}</div>
+        <div><b style="color:#94a3b8;">Temporal:</b> ${layer.temporal_resolution}</div>
+        <div><b style="color:#94a3b8;">Uncertainty:</b> ${layer.uncertainty}</div>
+        <div><b style="color:#94a3b8;">License:</b> ${layer.license}</div>
+      </div>
+      <div style="margin-top:10px;font-size:11px;font-style:italic;color:#94a3b8;">${layer.citation || ''}</div>
+      ${layer.source_url ? `<div style="margin-top:6px;font-size:11px;"><a href="${layer.source_url}" target="_blank" rel="noopener" style="color:#00d4ff;">${layer.source_url}</a></div>` : ''}
+    </div>`;
+    layui.layer.open({
+      type: 1,
+      title: lang === 'zh' ? '数据来源 / Data Source' : 'Data Source',
+      area: ['560px', 'auto'],
+      maxHeight: 560,
+      content: html,
+      success: function(layero) {
+        layero.find('.layui-layer-content').css({ background: '#0d1b2a', color: '#e2e8f0' });
+      }
+    });
+  }
+  document.addEventListener('click', function(e) {
+    const el = e.target.closest && e.target.closest('.src-info');
+    if (el && el.dataset.layer) showLayerPopup(el.dataset.layer);
+  });
+  loadMetadata();
+
+  // ---------- Language toggle ----------
+  function applyI18n() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (I18N[lang][key]) el.textContent = I18N[lang][key];
+    });
+    document.getElementById('lang-btn').textContent = (lang === 'en') ? '中文' : 'EN';
+  }
+  document.getElementById('lang-btn').addEventListener('click', function() {
+    lang = (lang === 'en') ? 'zh' : 'en';
+    try { localStorage.setItem('reeftriage_lang', lang); } catch (e) {}
+    applyI18n();
+    // Reload segment name
+    loadSegment();
+    // Re-render chem
+    if (lastEnvData) renderChem(lastEnvData);
+  });
+
+  // ---------- Export report ----------
+  document.getElementById('report-export-btn').addEventListener('click', function() {
+    window.open('/static/report.html?segment=' + encodeURIComponent(SEG_ID), '_blank');
+  });
+
+
+  // ---------- Reef Segment Switcher ----------
+  let allSegments = [];
+  let currentSegIndex = 0;
+
+  async function initSegmentSwitcher() {
+    try {
+      const r = await fetch(API + '/api/segments');
+      const resp = await r.json();
+      allSegments = resp.segments || resp || [];
+      allSegments.sort(function(a, b) { return (b.score || 0) - (a.score || 0); });
+      currentSegIndex = allSegments.findIndex(function(s) { return s.segment_id === SEG_ID; });
+      if (currentSegIndex === -1) currentSegIndex = 0;
+
+      var sel = document.getElementById('seg-select');
+      sel.innerHTML = '';
+      allSegments.forEach(function(s, i) {
+        var opt = document.createElement('option');
+        opt.value = s.segment_id;
+        var name = (s.name_zh && lang === 'zh') ? s.name_zh : (s.name || s.segment_id);
+        opt.textContent = s.segment_id + ' · ' + name + ' (' + (s.score || 0).toFixed(1) + ')';
+        if (s.segment_id === SEG_ID) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      updateNavButtons();
+    } catch(e) { console.error('initSegmentSwitcher', e); }
+  }
+
+  function updateNavButtons() {
+    document.getElementById('prev-seg').disabled = currentSegIndex <= 0;
+    document.getElementById('next-seg').disabled = currentSegIndex >= allSegments.length - 1;
+  }
+
+  function goToSegment(segId) {
+    var url = new URL(window.location);
+    url.searchParams.set('segment', segId);
+    window.location.href = url.toString();
+  }
+
+  document.getElementById('prev-seg').addEventListener('click', function() {
+    if (currentSegIndex > 0) {
+      currentSegIndex--;
+      goToSegment(allSegments[currentSegIndex].segment_id);
+    }
+  });
+  document.getElementById('next-seg').addEventListener('click', function() {
+    if (currentSegIndex < allSegments.length - 1) {
+      currentSegIndex++;
+      goToSegment(allSegments[currentSegIndex].segment_id);
+    }
+  });
+  document.getElementById('seg-select').addEventListener('change', function(e) {
+    goToSegment(e.target.value);
+  });
+  // ---------- Boot ----------
+  applyI18n();
+  initSegmentSwitcher();
+  loadSegment();
+  loadEnvironmental().then(() => {
+    // stash for i18n re-render
+  });
+  loadMonitoring();
+  renderChemTrend();
+
+  // Resize charts on window resize
+  window.addEventListener('resize', () => {
+    Object.values(charts).forEach(c => c.resize());
+  });
+
+})();
+</script>
+</body>
+</html>

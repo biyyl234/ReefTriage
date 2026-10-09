@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>API Console · ReefTriage</title>
+<link rel="stylesheet" href="https://cdn.staticfile.org/layui/2.9.16/css/layui.css" />
+<style>
+  :root{
+    --bg:#0a1628; --panel:rgba(13,27,42,0.85); --primary:#00d4ff;
+    --invest:#10b981; --monitor:#f59e0b; --deprior:#6b7280;
+    --text:#e2e8f0; --muted:#94a3b8; --border:rgba(0,212,255,0.15);
+  }
+  body{margin:0;background:var(--bg);color:var(--text);padding:16px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+  h2{color:var(--primary);font-size:18px;margin:0 0 4px;}
+  .sub{color:var(--muted);font-size:12px;margin-bottom:14px;}
+  .toolbar{margin-bottom:12px;display:flex;gap:10px;}
+  .tbl{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--border);
+    border-radius:8px;overflow:hidden;font-size:13px;}
+  .tbl th{background:rgba(0,212,255,.08);color:var(--primary);text-align:left;padding:10px 12px;
+    font-weight:600;border-bottom:1px solid var(--border);}
+  .tbl td{padding:9px 12px;border-bottom:1px solid rgba(0,212,255,.07);vertical-align:middle;}
+  .tbl tr:hover td{background:rgba(0,212,255,.04);}
+  .method{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;}
+  .m-GET{background:rgba(16,185,129,.15);color:#10b981;}
+  .m-POST{background:rgba(245,158,11,.15);color:#f59e0b;}
+  .m-PUT{background:rgba(0,212,255,.15);color:#00d4ff;}
+  .path{font-family:Consolas,Monaco,monospace;color:#7dd3fc;font-size:12px;}
+  .test-btn{background:rgba(0,212,255,.12);border:1px solid var(--border);color:var(--primary);
+    border-radius:4px;padding:3px 10px;cursor:pointer;font-size:12px;}
+  .test-btn:hover{background:rgba(0,212,255,.25);}
+  .sync-btn{background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:var(--monitor);
+    border-radius:4px;padding:6px 14px;cursor:pointer;font-size:13px;}
+  .sync-btn:hover{background:rgba(245,158,11,.28);}
+  .result-box{margin-top:16px;background:#060f1d;border:1px solid var(--border);border-radius:8px;
+    padding:14px;max-height:420px;overflow:auto;}
+  .result-title{color:var(--primary);font-size:13px;margin-bottom:8px;}
+  pre{margin:0;white-space:pre-wrap;word-break:break-all;color:#a5f3fc;font-family:Consolas,Monaco,monospace;font-size:12px;line-height:1.5;}
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:rgba(13,27,42,0.5);border-radius:3px;}
+  ::-webkit-scrollbar-thumb{background:rgba(0,212,255,0.4);border-radius:3px;}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(0,212,255,0.7);}
+  ::-webkit-scrollbar-corner{background:rgba(13,27,42,0.5);}
+  *{scrollbar-width:thin;scrollbar-color:rgba(0,212,255,0.4) rgba(13,27,42,0.5);}
+  body{overflow-x:hidden;}
+  .result-box{scrollbar-width:thin;}
+</style>
+</head>
+<body>
+<h2>🔧 <span data-i18n="title">API Console</span></h2>
+<div class="sub" data-i18n="sub">All ReefTriage endpoints · click Test to call and inspect JSON response</div>
+
+<div class="toolbar">
+  <button class="sync-btn" id="sync-to">⇅ <span data-i18n="syncTo">Sync → NocoBase</span></button>
+  <button class="sync-btn" id="sync-from">⇅ <span data-i18n="syncFrom">Sync ← NocoBase</span></button>
+</div>
+
+<table class="tbl">
+  <thead><tr>
+    <th style="width:80px">Method</th><th>Path</th><th style="width:300px" data-i18n="col_desc">Description</th><th style="width:80px"></th>
+  </tr></thead>
+  <tbody id="api-tbody"></tbody>
+</table>
+
+<div class="result-box">
+  <div class="result-title" id="result-title">—</div>
+  <pre id="result-body">// Click "Test" on any endpoint to see response here…</pre>
+</div>
+
+<script>
+var I18N = {
+  en: {title:'API Console', sub:'All ReefTriage endpoints · click Test to call and inspect JSON response',
+       syncTo:'Sync → NocoBase', syncFrom:'Sync ← NocoBase', col_desc:'Description',
+       test:'Test', resp:'Response', loading:'⏳ calling…'},
+  zh: {title:'API 管理', sub:'ReefTriage 全部接口 · 点击 Test 调用并查看 JSON 响应',
+       syncTo:'⇅ 同步 → NocoBase', syncFrom:'⇅ 同步 ← NocoBase', col_desc:'说明',
+       test:'测试', resp:'响应', loading:'⏳ 调用中…'}
+};
+var lang = localStorage.getItem('reeftriage_lang') || 'en';
+function t(k){ return I18N[lang][k] || k; }
+function applyLang(){
+  document.querySelectorAll('[data-i18n]').forEach(function(el){
+    var k = el.getAttribute('data-i18n');
+    if(I18N[lang][k]) el.textContent = I18N[lang][k];
+  });
+}
+
+var ENDPOINTS = [
+  {m:'GET',  p:'/api/health', d:'Service health check'},
+  {m:'GET',  p:'/api/stats', d:'Aggregate segment statistics'},
+  {m:'GET',  p:'/api/segments', d:'All scored reef segments'},
+  {m:'GET',  p:'/api/segments/R01', d:'Single segment detail (R01)'},
+  {m:'PUT',  p:'/api/segments/R01', d:'Update segment (NocoBase writeback)'},
+  {m:'POST', p:'/api/recalc', d:'Trigger weekly recalculation'},
+  {m:'GET',  p:'/api/priority?budget=50000&unit_cost=15000', d:'Budget-constrained priority list'},
+  {m:'GET',  p:'/api/optimize?budget=50000&unit_cost=5000', d:'Integer-programming optimizer'},
+  {m:'GET',  p:'/api/model/weights', d:'Entropy-weight TOPSIS feature weights'},
+  {m:'GET',  p:'/api/model/compare', d:'Old vs new model score scatter'},
+  {m:'GET',  p:'/api/model/ml-info', d:'ML bleaching predictor info'},
+  {m:'GET',  p:'/api/model/connectivity', d:'Larval connectivity matrix'},
+  {m:'GET',  p:'/api/model/backtest', d:'Backtest / ROC / ablation results'},
+  {m:'GET',  p:'/api/segments/R01/environmental', d:'Environmental data for R01'},
+  {m:'GET',  p:'/api/segments/R01/restoration-cost', d:'Restoration cost plan for R01'},
+  {m:'GET',  p:'/api/segments/R01/bleaching-monitoring', d:'Bleaching monitoring for R01'},
+  {m:'POST', p:'/api/segments/R01/restoration-cost', d:'Save restoration cost plan'},
+  {m:'POST', p:'/api/sync-to-nocobase', d:'Push ReefTriage → NocoBase'},
+  {m:'POST', p:'/api/sync-from-nocobase', d:'Pull NocoBase → ReefTriage'},
+  {m:'GET',  p:'/api/laya-status', d:'Laya/Jev service probe (:5000)'},
+  {m:'GET',  p:'/api/services-status', d:'Aggregated 4-service status'}
+];
+
+function render(){
+  var tb = document.getElementById('api-tbody');
+  tb.innerHTML = '';
+  ENDPOINTS.forEach(function(ep){
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td><span class="method m-'+ep.m+'">'+ep.m+'</span></td>'+
+      '<td class="path">'+ep.p+'</td>'+
+      '<td>'+ep.d+'</td>'+
+      '<td><button class="test-btn" data-m="'+ep.m+'" data-p="'+ep.p+'">'+t('test')+'</button></td>';
+    tb.appendChild(tr);
+  });
+}
+
+function showResult(title, obj){
+  document.getElementById('result-title').textContent = t('resp') + ': ' + title;
+  document.getElementById('result-body').textContent =
+    typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
+}
+
+document.getElementById('api-tbody').addEventListener('click', function(e){
+  var btn = e.target.closest('.test-btn');
+  if(!btn) return;
+  var m = btn.getAttribute('data-m'), p = btn.getAttribute('data-p');
+  document.getElementById('result-body').textContent = t('loading');
+  var opts = {method: m};
+  if(m !== 'GET'){
+    opts.headers = {'Content-Type':'application/json'};
+    opts.body = m === 'POST' && p.indexOf('restoration-cost') >= 0
+      ? JSON.stringify({method:'coral_gardening', area_m2:1000, survival_rate:0.7, coral_density:50})
+      : '{}';
+  }
+  fetch(p, opts).then(function(r){return r.json().then(function(j){return {status:r.status, body:j};});})
+    .then(function(res){ showResult(m+' '+p+' ['+res.status+']', res.body); })
+    .catch(function(err){ showResult(m+' '+p+' [ERROR]', String(err)); });
+});
+
+document.getElementById('sync-to').addEventListener('click', function(){
+  showResult('POST /api/sync-to-nocobase', t('loading'));
+  fetch('/api/sync-to-nocobase',{method:'POST'}).then(function(r){return r.json();})
+    .then(function(d){ showResult('POST /api/sync-to-nocobase', d); })
+    .catch(function(e){ showResult('ERROR', String(e)); });
+});
+document.getElementById('sync-from').addEventListener('click', function(){
+  showResult('POST /api/sync-from-nocobase', t('loading'));
+  fetch('/api/sync-from-nocobase',{method:'POST'}).then(function(r){return r.json();})
+    .then(function(d){ showResult('POST /api/sync-from-nocobase', d); })
+    .catch(function(e){ showResult('ERROR', String(e)); });
+});
+
+applyLang();
+render();
+</script>
+</body>
+</html>

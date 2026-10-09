@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ReefTriage · Spatial Filter 空间筛选</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://cdn.staticfile.org/layui/2.9.16/css/layui.css" />
+<style>
+  :root{
+    --bg:#0a1628; --panel:#0d1b2a; --primary:#00d4ff;
+    --invest:#10b981; --monitor:#f59e0b; --deprior:#6b7280;
+    --text:#e2e8f0; --muted:#94a3b8; --border:rgba(0,212,255,0.15);
+  }
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+  *{box-sizing:border-box;}
+
+  /* 6px cyan custom scrollbar */
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:rgba(13,27,42,0.5);border-radius:3px;}
+  ::-webkit-scrollbar-thumb{background:rgba(0,212,255,0.4);border-radius:3px;}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(0,212,255,0.7);}
+  *{scrollbar-width:thin;scrollbar-color:rgba(0,212,255,0.4) rgba(13,27,42,0.5);}
+
+  /* ===== Top bar ===== */
+  .ft-topbar{height:48px;display:flex;align-items:center;gap:14px;padding:0 16px;
+    background:var(--panel);border-bottom:1px solid var(--border);}
+  .ft-topbar h2{font-size:15px;margin:0;color:var(--primary);font-weight:600;}
+  .ft-count{font-size:13px;color:var(--muted);}
+  .ft-count b{color:var(--primary);font-size:16px;margin:0 2px;}
+  .ft-spacer{flex:1;}
+  .ft-btn{background:rgba(0,212,255,.1);border:1px solid var(--border);color:var(--primary);
+    border-radius:4px;padding:5px 12px;cursor:pointer;font-size:12px;}
+  .ft-btn:hover{background:rgba(0,212,255,.2);}
+
+  /* ===== Body layout ===== */
+  .ft-body{position:absolute;top:48px;left:0;right:0;bottom:0;display:flex;}
+
+  /* Left panel */
+  .ft-panel{width:300px;min-width:300px;background:var(--panel);border-right:1px solid var(--border);
+    overflow-y:auto;padding:12px;}
+  .ft-section{margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(148,163,184,.1);}
+  .ft-label{font-size:12px;color:var(--muted);margin-bottom:6px;letter-spacing:.5px;
+    display:flex;justify-content:space-between;align-items:center;}
+  .ft-val{color:var(--primary);font-size:11px;font-variant-numeric:tabular-nums;}
+
+  /* dual range slider */
+  .dr-wrap{position:relative;height:26px;margin:4px 0 2px;}
+  .dr-track{position:absolute;top:11px;left:0;right:0;height:4px;border-radius:2px;background:rgba(148,163,184,.25);}
+  .dr-fill{position:absolute;top:11px;height:4px;border-radius:2px;background:var(--primary);}
+  .dr-wrap input[type=range]{position:absolute;top:0;left:0;width:100%;margin:0;height:24px;
+    -webkit-appearance:none;appearance:none;background:transparent;pointer-events:none;}
+  .dr-wrap input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;pointer-events:auto;
+    width:14px;height:14px;border-radius:50%;background:var(--primary);border:2px solid #0a1628;
+    box-shadow:0 0 6px rgba(0,212,255,.7);cursor:pointer;margin-top:0;}
+  .dr-wrap input[type=range]::-moz-range-thumb{pointer-events:auto;width:14px;height:14px;border-radius:50%;
+    background:var(--primary);border:2px solid #0a1628;cursor:pointer;}
+  .dr-wrap input[type=range]::-webkit-slider-runnable-track{background:transparent;}
+  .dr-wrap input[type=range]::-moz-range-track{background:transparent;}
+
+  /* checkboxes */
+  .ft-check{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;color:var(--text);cursor:pointer;}
+  .ft-check input{accent-color:var(--primary);}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;}
+
+  /* selects */
+  .ft-select{width:100%;background:rgba(10,22,40,.8);border:1px solid var(--border);color:var(--text);
+    border-radius:4px;padding:6px 8px;font-size:12px;margin-bottom:6px;}
+  .ft-select option{background:var(--panel);color:var(--text);}
+  .ft-row{display:flex;gap:6px;}
+  .ft-row .ft-btn{flex:1;}
+
+  /* ===== Right main ===== */
+  .ft-main{flex:1;display:flex;flex-direction:column;min-width:0;}
+  #ft-map{flex:1;min-height:0;background:#0a1628;}
+  .ft-table-wrap{height:300px;min-height:300px;background:var(--panel);border-top:1px solid var(--border);
+    padding:8px;overflow:auto;position:relative;}
+  .layui-table{background:transparent;color:var(--text);}
+  .layui-table th{background:rgba(0,212,255,.06)!important;color:var(--muted)!important;font-weight:500;}
+  .layui-table td,.layui-table th{border-bottom:1px solid rgba(148,163,184,.1)!important;}
+  .layui-table-hover{background:rgba(0,212,255,.08)!important;}
+  .layui-table[lay-size=sm] .layui-table-cell{height:34px;line-height:34px;}
+
+  /* legend on map */
+  .ft-legend{position:absolute;bottom:20px;left:12px;z-index:1000;background:rgba(13,27,42,.9);
+    border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--muted);}
+  .ft-legend .r{display:flex;align-items:center;gap:6px;margin:2px 0;}
+</style>
+</head>
+<body>
+
+<div class="ft-topbar">
+  <h2>🎯 <span data-i18n="title">Spatial Filter</span></h2>
+  <div class="ft-count"><b id="result-count">0</b><span data-i18n="results">results</span></div>
+  <div class="ft-spacer"></div>
+  <button class="ft-btn" id="save-preset-btn">💾 <span data-i18n="save">Save Preset</span></button>
+  <button class="ft-btn" id="reset-btn">↺ <span data-i18n="reset">Reset</span></button>
+  <button class="ft-btn" id="lang-btn">中文</button>
+</div>
+
+<div class="ft-body">
+  <!-- Left filter panel -->
+  <aside class="ft-panel">
+    <div class="ft-section">
+      <div class="ft-label"><span data-i18n="presets">Saved Presets</span></div>
+      <select class="ft-select" id="preset-select">
+        <option value="">-- <span data-i18n="choose">choose</span> --</option>
+      </select>
+      <div class="ft-row">
+        <button class="ft-btn" id="apply-preset-btn" data-i18n="apply">Apply</button>
+        <button class="ft-btn" id="del-preset-btn" data-i18n="delete">Delete</button>
+      </div>
+    </div>
+
+    <div class="ft-section">
+      <div class="ft-label"><span data-i18n="dhw">Current DHW</span><span class="ft-val" id="dhw-val"></span></div>
+      <div class="dr-wrap" data-dim="dhw">
+        <div class="dr-track"></div><div class="dr-fill"></div>
+        <input type="range" class="dr-min"><input type="range" class="dr-max">
+      </div>
+    </div>
+
+    <div class="ft-section">
+      <div class="ft-label"><span data-i18n="depth">Mean Depth (m)</span><span class="ft-val" id="depth-val"></span></div>
+      <div class="dr-wrap" data-dim="depth">
+        <div class="dr-track"></div><div class="dr-fill"></div>
+        <input type="range" class="dr-min"><input type="range" class="dr-max">
+      </div>
+    </div>
+
+    <div class="ft-section">
+      <div class="ft-label"><span data-i18n="conn">Connectivity</span><span class="ft-val" id="connectivity-val"></span></div>
+      <div class="dr-wrap" data-dim="connectivity">
+        <div class="dr-track"></div><div class="dr-fill"></div>
+        <input type="range" class="dr-min"><input type="range" class="dr-max">
+      </div>
+    </div>
+
+    <div class="ft-section">
+      <div class="ft-label"><span data-i18n="score">Score</span><span class="ft-val" id="score-val"></span></div>
+      <div class="dr-wrap" data-dim="score">
+        <div class="dr-track"></div><div class="dr-fill"></div>
+        <input type="range" class="dr-min"><input type="range" class="dr-max">
+      </div>
+    </div>
+
+    <div class="ft-section">
+      <div class="ft-label"><span data-i18n="bhprob">Bleaching Prob.</span><span class="ft-val" id="bleaching_prob-val"></span></div>
+      <div class="dr-wrap" data-dim="bleaching_prob">
+        <div class="dr-track"></div><div class="dr-fill"></div>
+        <input type="range" class="dr-min"><input type="range" class="dr-max">
+      </div>
+    </div>
+
+    <div class="ft-section">
+      <div class="ft-label"><span data-i18n="choice">Decision Choice</span></div>
+      <label class="ft-check"><input type="checkbox" class="choice-cb" value="invest"><span class="dot" style="background:var(--invest)"></span><span data-i18n="invest">Invest</span></label>
+      <label class="ft-check"><input type="checkbox" class="choice-cb" value="monitor"><span class="dot" style="background:var(--monitor)"></span><span data-i18n="monitor">Monitor</span></label>
+      <label class="ft-check"><input type="checkbox" class="choice-cb" value="deprioritize"><span class="dot" style="background:var(--deprior)"></span><span data-i18n="deprior">Deprioritize</span></label>
+    </div>
+
+    <div class="ft-section" style="border-bottom:none;">
+      <div class="ft-label"><span data-i18n="group">Reef Group</span></div>
+      <label class="ft-check"><input type="checkbox" class="group-cb" value="Sipadan">Sipadan</label>
+      <label class="ft-check"><input type="checkbox" class="group-cb" value="Tun Sakaran">Tun Sakaran</label>
+      <label class="ft-check"><input type="checkbox" class="group-cb" value="East-West">East-West</label>
+    </div>
+  </aside>
+
+  <!-- Right: map + table -->
+  <main class="ft-main">
+    <div id="ft-map">
+      <div class="ft-legend">
+        <div class="r"><span class="dot" style="background:var(--invest)"></span><span data-i18n="invest">Invest</span></div>
+        <div class="r"><span class="dot" style="background:var(--monitor)"></span><span data-i18n="monitor">Monitor</span></div>
+        <div class="r"><span class="dot" style="background:var(--deprior)"></span><span data-i18n="deprior">Deprioritize</span></div>
+      </div>
+    </div>
+    <div class="ft-table-wrap"><div id="ft-table"></div></div>
+  </main>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.staticfile.org/layui/2.9.16/layui.js"></script>
+<script>
+layui.use(['table','layer'], function(){
+  var table = layui.table, layer = layui.layer;
+  var $ = layui.$;
+
+  // ---------- i18n ----------
+  var I18N = {
+    en: {title:'Spatial Filter', results:'results', save:'Save Preset', reset:'Reset',
+         presets:'Saved Presets', choose:'choose', apply:'Apply', delete:'Delete',
+         dhw:'Current DHW', depth:'Mean Depth (m)', conn:'Connectivity', score:'Score',
+         bhprob:'Bleaching Prob.', choice:'Decision Choice', invest:'Invest', monitor:'Monitor',
+         deprior:'Deprioritize', group:'Reef Group', presetName:'Preset name:', noResults:'No segments match',
+         colId:'ID', colName:'Reef', colScore:'Score', colDhw:'DHW', colDepth:'Depth', colChoice:'Choice'},
+    zh: {title:'空间筛选', results:'个结果', save:'保存方案', reset:'重置',
+         presets:'已存筛选方案', choose:'选择方案', apply:'应用', delete:'删除',
+         dhw:'当前 DHW', depth:'平均水深 (m)', conn:'连通性', score:'评分',
+         bhprob:'白化概率', choice:'决策分类', invest:'投入 Invest', monitor:'观察 Monitor',
+         deprior:'暂缓 Deprioritize', group:'礁段分组', presetName:'方案名称：', noResults:'无匹配礁段',
+         colId:'编号', colName:'礁段', colScore:'评分', colDhw:'DHW', colDepth:'水深', colChoice:'分类'}
+  };
+  var lang = localStorage.getItem('reeftriage_lang') || 'en';
+  function t(k){ return (I18N[lang] && I18N[lang][k]) || I18N.en[k] || k; }
+  function applyLang(){
+    document.querySelectorAll('[data-i18n]').forEach(function(el){ el.textContent = t(el.getAttribute('data-i18n')); });
+    $('#lang-btn').text(lang === 'en' ? '中文' : 'EN');
+  }
+  $('#lang-btn').on('click', function(){
+    lang = (lang === 'en') ? 'zh' : 'en';
+    localStorage.setItem('reeftriage_lang', lang);
+    applyLang(); renderTable(lastData);
+  });
+
+  // ---------- map ----------
+  var map = L.map('ft-map', {zoomControl:true}).setView([4.5, 118.7], 11);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    {attribution:'Esri World Imagery', maxZoom:18, crossOrigin:true}).addTo(map);
+  var CHOICE_COLORS = {invest:'#10b981', monitor:'#f59e0b', deprioritize:'#6b7280'};
+  var markerLayer = L.layerGroup().addTo(map);
+
+  // ---------- dimension config ----------
+  // key -> {minParam, maxParam, step, rangeSource, valId}
+  var DIMS = {
+    dhw:           {minP:'min_dhw', maxP:'max_dhw', step:0.1, rangeKey:'dhw_range', fmt:1},
+    depth:         {minP:'min_depth', maxP:'max_depth', step:0.5, rangeKey:'depth_range', fmt:1},
+    connectivity:  {minP:'min_connectivity', maxP:'max_connectivity', step:0.1, rangeKey:'connectivity_range', fmt:2},
+    score:         {minP:'min_score', maxP:'max_score', step:1, rangeKey:'score_range', fmt:1},
+    bleaching_prob:{minP:'bleaching_prob_min', maxP:'bleaching_prob_max', step:0.01, rangeKey:'bleaching_prob_range', fmt:3}
+  };
+  var filtersMeta = null;
+  var lastData = [];
+
+  function fmtVal(dim, v){
+    var f = DIMS[dim].fmt;
+    return Number(v).toFixed(f);
+  }
+
+  // ---------- dual range init ----------
+  function initDualRanges(meta){
+    Object.keys(DIMS).forEach(function(dim){
+      var cfg = DIMS[dim];
+      var range = meta[cfg.rangeKey];
+      var wrap = document.querySelector('.dr-wrap[data-dim="'+dim+'"]');
+      var minEl = wrap.querySelector('.dr-min'), maxEl = wrap.querySelector('.dr-max');
+      // 把滑块边界对齐到 step 网格, 避免浏览器吸附把初始 max 钳到略小于数据上限,
+      // 从而被 collectParams 误判为"用户已拖动"而发出过严的过滤
+      var step = cfg.step;
+      var lo = Math.floor(range.min / step) * step;
+      var hi = Math.ceil(range.max / step) * step;
+      minEl.min = lo; minEl.max = hi; minEl.step = step; minEl.value = lo;
+      maxEl.min = lo; maxEl.max = hi; maxEl.step = step; maxEl.value = hi;
+      updateFill(wrap, dim);
+      minEl.addEventListener('input', function(){
+        if (parseFloat(minEl.value) > parseFloat(maxEl.value)) minEl.value = maxEl.value;
+        updateFill(wrap, dim); scheduleFetch();
+      });
+      maxEl.addEventListener('input', function(){
+        if (parseFloat(maxEl.value) < parseFloat(minEl.value)) maxEl.value = minEl.value;
+        updateFill(wrap, dim); scheduleFetch();
+      });
+    });
+  }
+
+  function updateFill(wrap, dim){
+    var cfg = DIMS[dim];
+    var minEl = wrap.querySelector('.dr-min'), maxEl = wrap.querySelector('.dr-max');
+    var lo = parseFloat(minEl.min), hi = parseFloat(maxEl.max);
+    var a = parseFloat(minEl.value), b = parseFloat(maxEl.value);
+    var pctL = (a - lo) / (hi - lo) * 100;
+    var pctR = (b - lo) / (hi - lo) * 100;
+    var fill = wrap.querySelector('.dr-fill');
+    fill.style.left = pctL + '%';
+    fill.style.width = (pctR - pctL) + '%';
+    document.getElementById(dim + '-val').textContent = fmtVal(dim, a) + ' – ' + fmtVal(dim, b);
+  }
+
+  // ---------- collect params ----------
+  function collectParams(){
+    var p = {};
+    Object.keys(DIMS).forEach(function(dim){
+      var cfg = DIMS[dim];
+      var wrap = document.querySelector('.dr-wrap[data-dim="'+dim+'"]');
+      var lo = parseFloat(wrap.querySelector('.dr-min').value);
+      var hi = parseFloat(wrap.querySelector('.dr-max').value);
+      var rlo = parseFloat(wrap.querySelector('.dr-min').min);
+      var rhi = parseFloat(wrap.querySelector('.dr-max').max);
+      // only include if not at extremes
+      if (Math.abs(lo - rlo) > 1e-6) p[cfg.minP] = lo;
+      if (Math.abs(hi - rhi) > 1e-6) p[cfg.maxP] = hi;
+    });
+    var choices = [];
+    document.querySelectorAll('.choice-cb:checked').forEach(function(c){ choices.push(c.value); });
+    if (choices.length) p.choice = choices.join(',');
+    var groups = [];
+    document.querySelectorAll('.group-cb:checked').forEach(function(c){ groups.push(c.value); });
+    if (groups.length) p.group = groups.join(',');
+    return p;
+  }
+
+  // ---------- debounced fetch ----------
+  var debounceTimer = null;
+  function scheduleFetch(){ clearTimeout(debounceTimer); debounceTimer = setTimeout(fetchData, 300); }
+
+  function fetchData(){
+    var p = collectParams();
+    var qs = new URLSearchParams(p).toString();
+    fetch('/api/segments' + (qs ? '?' + qs : ''))
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        lastData = data.segments || [];
+        document.getElementById('result-count').textContent = data.count;
+        renderMap(lastData);
+        renderTable(lastData);
+      })
+      .catch(function(e){ console.error('fetch error', e); });
+  }
+
+  // ---------- render map ----------
+  function renderMap(segs){
+    markerLayer.clearLayers();
+    segs.forEach(function(seg){
+      var score = seg.final_score != null ? seg.final_score : seg.score;
+      var color = CHOICE_COLORS[seg.choice] || '#6b7280';
+      var radius = 6 + (score / 100) * 10;
+      var mk = L.circleMarker([seg.lat, seg.lon], {
+        radius: radius, color: color, weight: 2, fillColor: color, fillOpacity: 0.9
+      });
+      var nm = (lang === 'zh' && seg.name_zh) ? seg.name_zh : seg.name;
+      mk.bindPopup('<b>' + nm + '</b><br>Score: ' + (typeof score==='number'?score.toFixed(1):score) + '<br>Choice: ' + seg.choice);
+      mk._segId = seg.segment_id;
+      markerLayer.addLayer(mk);
+    });
+  }
+
+  function locateOnMap(seg){
+    map.setView([seg.lat, seg.lon], 13);
+    markerLayer.eachLayer(function(l){
+      if (l._segId === seg.segment_id) { l.openPopup(); }
+    });
+  }
+
+  // ---------- render table ----------
+  function renderTable(segs){
+    var rows = segs.map(function(s){
+      var nm = (lang === 'zh' && s.name_zh) ? s.name_zh : s.name;
+      return {
+        id: s.segment_id, name: nm, score: s.final_score != null ? s.final_score : s.score,
+        choice: s.choice, dhw: s.current_dhw, depth: s.mean_depth, lat: s.lat, lon: s.lon
+      };
+    });
+    table.render({
+      elem: '#ft-table',
+      data: rows,
+      page: false,
+      cols: [[
+        {field:'id', title: t('colId'), width:70, sort:true},
+        {field:'name', title: t('colName'), minWidth:160, sort:true},
+        {field:'score', title: t('colScore'), width:80, sort:true, align:'right', templet:function(d){return (typeof d.score==='number'?d.score.toFixed(1):d.score);}},
+        {field:'choice', title: t('colChoice'), width:110, sort:true, templet: function(d){
+          var c = CHOICE_COLORS[d.choice] || '#6b7280';
+          return '<span style="color:'+c+'">●</span> ' + d.choice;
+        }},
+        {field:'dhw', title: t('colDhw'), width:80, sort:true, align:'right', templet:function(d){return Number(d.dhw).toFixed(2);}},
+        {field:'depth', title: t('colDepth'), width:80, sort:true, align:'right', templet:function(d){return (typeof d.depth==='number'?d.depth.toFixed(1):d.depth);}}
+      ]]
+    });
+  }
+
+  table.on('row(ftFilter)', function(obj){
+    var d = obj.data;
+    locateOnMap({lat:d.lat, lon:d.lon, segment_id:d.id});
+  });
+
+  // ---------- presets (localStorage) ----------
+  var PRESET_KEY = 'reeftriage_filter_presets';
+  function loadPresets(){
+    var presets = JSON.parse(localStorage.getItem(PRESET_KEY) || '[]');
+    var sel = document.getElementById('preset-select');
+    sel.innerHTML = '<option value="">-- ' + t('choose') + ' --</option>';
+    presets.forEach(function(p, i){
+      var opt = document.createElement('option');
+      opt.value = i; opt.textContent = p.name;
+      sel.appendChild(opt);
+    });
+  }
+
+  $('#save-preset-btn').on('click', function(){
+    layer.prompt({title: t('presetName'), formType: 0}, function(name, idx){
+      var presets = JSON.parse(localStorage.getItem(PRESET_KEY) || '[]');
+      presets.push({name: name, params: collectParams()});
+      localStorage.setItem(PRESET_KEY, JSON.stringify(presets));
+      loadPresets();
+      layer.close(idx);
+      layer.msg('Saved: ' + name);
+    });
+  });
+
+  $('#apply-preset-btn').on('click', function(){
+    var i = document.getElementById('preset-select').value;
+    if (i === '') return;
+    var presets = JSON.parse(localStorage.getItem(PRESET_KEY) || '[]');
+    var p = presets[parseInt(i,10)].params;
+    applyParamsToUI(p);
+    scheduleFetch();
+  });
+
+  $('#del-preset-btn').on('click', function(){
+    var i = document.getElementById('preset-select').value;
+    if (i === '') return;
+    var presets = JSON.parse(localStorage.getItem(PRESET_KEY) || '[]');
+    presets.splice(parseInt(i,10), 1);
+    localStorage.setItem(PRESET_KEY, JSON.stringify(presets));
+    loadPresets();
+  });
+
+  function applyParamsToUI(p){
+    // ranges
+    Object.keys(DIMS).forEach(function(dim){
+      var cfg = DIMS[dim];
+      var wrap = document.querySelector('.dr-wrap[data-dim="'+dim+'"]');
+      var minEl = wrap.querySelector('.dr-min'), maxEl = wrap.querySelector('.dr-max');
+      var lo = parseFloat(minEl.min), hi = parseFloat(maxEl.max);
+      minEl.value = (p[cfg.minP] != null) ? p[cfg.minP] : lo;
+      maxEl.value = (p[cfg.maxP] != null) ? p[cfg.maxP] : hi;
+      updateFill(wrap, dim);
+    });
+    // choices
+    document.querySelectorAll('.choice-cb').forEach(function(c){
+      c.checked = (p.choice && p.choice.split(',').indexOf(c.value) >= 0);
+    });
+    // groups
+    document.querySelectorAll('.group-cb').forEach(function(c){
+      c.checked = (p.group && p.group.split(',').indexOf(c.value) >= 0);
+    });
+  }
+
+  // ---------- reset ----------
+  $('#reset-btn').on('click', function(){
+    if (!filtersMeta) return;
+    Object.keys(DIMS).forEach(function(dim){
+      var wrap = document.querySelector('.dr-wrap[data-dim="'+dim+'"]');
+      var minEl = wrap.querySelector('.dr-min'), maxEl = wrap.querySelector('.dr-max');
+      minEl.value = minEl.min; maxEl.value = maxEl.max;
+      updateFill(wrap, dim);
+    });
+    document.querySelectorAll('.choice-cb,.group-cb').forEach(function(c){ c.checked = false; });
+    scheduleFetch();
+  });
+
+  // ---------- checkbox changes ----------
+  document.querySelectorAll('.choice-cb,.group-cb').forEach(function(cb){
+    cb.addEventListener('change', scheduleFetch);
+  });
+
+  // ---------- boot ----------
+  applyLang();
+  fetch('/api/segments/filters')
+    .then(function(r){ return r.json(); })
+    .then(function(meta){
+      filtersMeta = meta;
+      initDualRanges(meta);
+      loadPresets();
+      fetchData();
+    });
+});
+</script>
+</body>
+</html>

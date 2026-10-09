@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Settings · ReefTriage</title>
+<link rel="stylesheet" href="https://cdn.staticfile.org/layui/2.9.16/css/layui.css" />
+<style>
+  :root{
+    --bg:#0a1628; --panel:rgba(13,27,42,0.85); --primary:#00d4ff;
+    --invest:#10b981; --monitor:#f59e0b; --deprior:#6b7280;
+    --text:#e2e8f0; --muted:#94a3b8; --border:rgba(0,212,255,0.15);
+  }
+  body{margin:0;background:var(--bg);color:var(--text);padding:16px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+  h2{color:var(--primary);font-size:18px;margin:0 0 14px;}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:10px;
+    padding:18px;backdrop-filter:blur(12px);margin-bottom:14px;max-width:640px;}
+  .card h3{color:var(--primary);font-size:14px;margin:0 0 12px;}
+  .row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;
+    border-bottom:1px dashed rgba(0,212,255,.08);font-size:13px;}
+  .row:last-child{border-bottom:0;}
+  .row .k{color:var(--muted);}
+  .row .v{color:var(--text);font-weight:600;}
+  select{background:#0d1b2a;color:var(--text);border:1px solid var(--border);
+    border-radius:4px;padding:4px 8px;font-size:13px;}
+  .src{font-size:12px;color:var(--muted);line-height:1.8;}
+  .src b{color:var(--primary);}
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:rgba(13,27,42,0.5);border-radius:3px;}
+  ::-webkit-scrollbar-thumb{background:rgba(0,212,255,0.4);border-radius:3px;}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(0,212,255,0.7);}
+  ::-webkit-scrollbar-corner{background:rgba(13,27,42,0.5);}
+  *{scrollbar-width:thin;scrollbar-color:rgba(0,212,255,0.4) rgba(13,27,42,0.5);}
+  body{overflow-x:hidden;}
+</style>
+</head>
+<body>
+<h2>⚙️ <span data-i18n="title">Settings</span></h2>
+
+<div class="card">
+  <h3 data-i18n="gen">General</h3>
+  <div class="row">
+    <span class="k" data-i18n="lang">Language</span>
+    <select id="lang-sel">
+      <option value="en">English</option>
+      <option value="zh">中文</option>
+    </select>
+  </div>
+  <div class="row">
+    <span class="k" data-i18n="basemap">Basemap</span>
+    <select id="basemap-sel">
+      <option value="satellite">🛰️ Satellite</option>
+      <option value="dark">🌙 Dark</option>
+    </select>
+  </div>
+</div>
+
+<div class="card">
+  <h3 data-i18n="params">Model Parameters</h3>
+  <div class="row"><span class="k" data-i18n="alpha">Fusion α (ML weight)</span><span class="v">0.30</span></div>
+  <div class="row"><span class="k" data-i18n="inv_t">Invest threshold</span><span class="v">37.6</span></div>
+  <div class="row"><span class="k" data-i18n="mon_t">Monitor threshold</span><span class="v">30.0</span></div>
+  <div class="row"><span class="k" data-i18n="budget">Default budget</span><span class="v">$50,000</span></div>
+  <div class="row"><span class="k" data-i18n="ucost">Unit cost / segment</span><span class="v">$15,000</span></div>
+</div>
+
+<div class="card">
+  <h3 data-i18n="src">Data Sources</h3>
+  <div class="src">
+    <div>· <b>NOAA CRW</b> — Coral Reef Watch DHW / SST daily data</div>
+    <div>· <b>Copernicus Marine</b> — Regional SST, pH, ocean current</div>
+    <div>· <b>Literature values</b> — RHI, connectivity, reef area for Semporna</div>
+    <div>· <b>NocoBase</b> — Manual writeback & field management</div>
+  </div>
+</div>
+
+<script src="https://cdn.staticfile.org/layui/2.9.16/layui.js"></script>
+<script>
+var I18N = {
+  en: {title:'Settings', gen:'General', lang:'Language', basemap:'Basemap',
+       params:'Model Parameters', alpha:'Fusion α (ML weight)', inv_t:'Invest threshold',
+       mon_t:'Monitor threshold', budget:'Default budget', ucost:'Unit cost / segment',
+       src:'Data Sources'},
+  zh: {title:'设置', gen:'通用', lang:'语言', basemap:'底图',
+       params:'模型参数', alpha:'融合 α（ML 权重）', inv_t:'Invest 阈值',
+       mon_t:'Monitor 阈值', budget:'默认预算', ucost:'单段恢复成本',
+       src:'数据来源'}
+};
+var lang = localStorage.getItem('reeftriage_lang') || 'en';
+function applyLang(){
+  document.querySelectorAll('[data-i18n]').forEach(function(el){
+    var k = el.getAttribute('data-i18n');
+    if(I18N[lang][k]) el.textContent = I18N[lang][k];
+  });
+  document.getElementById('lang-sel').value = lang;
+}
+document.getElementById('lang-sel').addEventListener('change', function(e){
+  lang = e.target.value;
+  localStorage.setItem('reeftriage_lang', lang);
+  applyLang();
+  // notify parent
+  if(window.parent && window.parent !== window){
+    try{ window.parent.location.reload(); }catch(err){}
+  }
+});
+document.getElementById('basemap-sel').addEventListener('change', function(e){
+  localStorage.setItem('reeftriage_basemap', e.target.value);
+});
+document.getElementById('basemap-sel').value = localStorage.getItem('reeftriage_basemap') || 'satellite';
+applyLang();
+</script>
+</body>
+</html>

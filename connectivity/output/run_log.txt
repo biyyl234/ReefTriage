@@ -1,0 +1,56 @@
+Coral Larval Connectivity Model - Run Log
+============================================================
+
+Method: Pure-Python RK4 (OceanParcels unavailable on Python 3.14)
+HYCOM dataset: GLBy0.08 expt_93.0 uv3z (1/12 deg analysis)
+HYCOM time window: 2024-08-06T00:00:00.000000000 -> 2024-09-05T09:00:00.000000000
+Region: lon 118.000-119.760, lat 4.000-6.520
+Depth layers used: [np.float64(0.0), np.float64(15.0)] m
+
+Reefs: 28
+Particles per reef: 80 (total 2240)
+Simulation: 30 days, dt=1.0 h (720 steps)
+Daily mortality: 0.05
+Settlement radius: 5.0 km
+Competency period (no settlement): first 5.0 days
+Diel vertical migration: local day (6:00-18:00, UTC+8) at 15.0 m, night at 0.0 m
+
+--- Results ---
+Total released: 2240
+Total settled (any reef): 528
+Died (mortality, never settled): 1695
+Still drifting alive at end: 17
+Overall settlement rate: 0.236
+Overall survival rate (not killed): 0.243
+
+Connectivity matrix row sums (total settlement success per source reef):
+  Sipadan Barracuda Point: row_sum=0.650 (self=0.000, out=0.650)
+  Sipadan Drop Off: row_sum=0.725 (self=0.000, out=0.725)
+  Sipadan Turtle Cave: row_sum=0.738 (self=0.000, out=0.738)
+  Sipadan West Ridge: row_sum=0.812 (self=0.000, out=0.812)
+  Mabul Coral Garden: row_sum=0.362 (self=0.000, out=0.362)
+  Mabul Lobster Wall: row_sum=0.787 (self=0.000, out=0.787)
+  Mabul Jetty Reef: row_sum=0.762 (self=0.000, out=0.762)
+  Kapalai House Reef: row_sum=0.762 (self=0.000, out=0.762)
+  Kapalai Reef Flat: row_sum=0.787 (self=0.000, out=0.787)
+  Bodgaya Reef North: row_sum=0.000 (self=0.000, out=0.000)
+  Bodgaya Reef South: row_sum=0.000 (self=0.000, out=0.000)
+  Boheydulang Wall: row_sum=0.000 (self=0.000, out=0.000)
+  Boheydulang Lagoon: row_sum=0.000 (self=0.000, out=0.000)
+  Sibuan Reef   : row_sum=0.000 (self=0.000, out=0.000)
+  Mantabuan Patch Reef: row_sum=0.000 (self=0.000, out=0.000)
+  Tetagan Reef  : row_sum=0.212 (self=0.000, out=0.212)
+  Maiga Reef    : row_sum=0.000 (self=0.000, out=0.000)
+  Tagbalatang Reef: row_sum=0.000 (self=0.000, out=0.000)
+  Tagbalatang North: row_sum=0.000 (self=0.000, out=0.000)
+  Eastern Patch Reef 1: row_sum=0.000 (self=0.000, out=0.000)
+  Eastern Patch Reef 2: row_sum=0.000 (self=0.000, out=0.000)
+  Church Reef   : row_sum=0.000 (self=0.000, out=0.000)
+  Western Patch Reef: row_sum=0.000 (self=0.000, out=0.000)
+  Western North Reef: row_sum=0.000 (self=0.000, out=0.000)
+  Bum Bum Reef  : row_sum=0.000 (self=0.000, out=0.000)
+  Timbalan Reef : row_sum=0.000 (self=0.000, out=0.000)
+  Kalampunian Reef: row_sum=0.000 (self=0.000, out=0.000)
+  Semporna Port Reef: row_sum=0.000 (self=0.000, out=0.000)
+
+Elapsed: 1.7s

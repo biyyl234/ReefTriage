@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Feedback · ReefTriage</title>
+<link rel="stylesheet" href="https://cdn.staticfile.org/layui/2.9.16/css/layui.css" />
+<style>
+  :root{
+    --bg:#0a1628; --panel:rgba(13,27,42,0.85); --primary:#00d4ff;
+    --invest:#10b981; --monitor:#f59e0b; --deprior:#6b7280;
+    --text:#e2e8f0; --muted:#94a3b8; --border:rgba(0,212,255,0.15);
+  }
+  body{margin:0;background:var(--bg);color:var(--text);padding:20px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+  h2{color:var(--primary);font-size:18px;margin:0 0 16px;}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:10px;
+    padding:22px;backdrop-filter:blur(12px);max-width:640px;}
+
+  /* Layui dark overrides */
+  .layui-form-label{color:var(--muted);}
+  .layui-input, .layui-textarea, .layui-select{
+    background:#0d1b2a !important; color:var(--text) !important;
+    border:1px solid var(--border) !important; border-radius:6px !important;
+  }
+  .layui-input:focus, .layui-textarea:focus{border-color:var(--primary) !important;}
+  .layui-form-select dl{background:#0d1b2a;border:1px solid var(--border);}
+  .layui-form-select dl dd{color:var(--text);}
+  .layui-form-select dl dd.layui-this{background:rgba(0,212,255,.15);color:var(--primary);}
+  .layui-form-select .layui-edge{border-top-color:var(--primary);}
+
+  .btn-primary{
+    background:linear-gradient(135deg,#00d4ff,#0099cc);color:#0a1628;
+    border:none;border-radius:6px;padding:8px 24px;font-size:14px;font-weight:600;
+    cursor:pointer;transition:opacity .2s;
+  }
+  .btn-primary:hover{opacity:.85;}
+  .btn-ghost{
+    background:transparent;color:var(--primary);border:1px solid var(--border);
+    border-radius:6px;padding:8px 20px;font-size:13px;cursor:pointer;margin-left:8px;
+  }
+  .btn-ghost:hover{background:rgba(0,212,255,.1);}
+
+  .thanks-box{
+    display:none;text-align:center;padding:30px 10px;
+  }
+  .thanks-box .emoji{font-size:48px;margin-bottom:12px;}
+  .thanks-box h3{color:var(--invest);font-size:18px;margin:0 0 8px;}
+  .thanks-box p{color:var(--muted);font-size:13px;margin:0 0 18px;}
+
+  .char-count{font-size:11px;color:var(--muted);text-align:right;margin-top:4px;}
+
+  /* 6px cyan scrollbar */
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:rgba(13,27,42,0.5);border-radius:3px;}
+  ::-webkit-scrollbar-thumb{background:rgba(0,212,255,0.4);border-radius:3px;}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(0,212,255,0.7);}
+  ::-webkit-scrollbar-corner{background:rgba(13,27,42,0.5);}
+  *{scrollbar-width:thin;scrollbar-color:rgba(0,212,255,0.4) rgba(13,27,42,0.5);}
+  body{overflow-x:hidden;}
+</style>
+</head>
+<body>
+
+<h2>💬 <span data-i18n="title">Feedback</span></h2>
+
+<div class="card" id="form-card">
+  <form class="layui-form" id="feedback-form">
+
+    <div class="layui-form-item">
+      <label class="layui-form-label" data-i18n="type">Type</label>
+      <div class="layui-input-block">
+        <select name="type" id="f-type">
+          <option value="feature" data-i18n="type_feature">Feature Suggestion</option>
+          <option value="bug" data-i18n="type_bug">Bug Report</option>
+          <option value="data" data-i18n="type_data">Data Issue</option>
+          <option value="other" data-i18n="type_other">Other</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="layui-form-item">
+      <label class="layui-form-label" data-i18n="page">Source Page</label>
+      <div class="layui-input-block">
+        <select name="page" id="f-page">
+          <option value="macro" data-i18n="page_macro">Macro Map</option>
+          <option value="micro" data-i18n="page_micro">Reef Lab / Micro</option>
+          <option value="admin" data-i18n="page_admin">Admin System</option>
+          <option value="other" data-i18n="page_other">Other</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="layui-form-item">
+      <label class="layui-form-label" data-i18n="title_lbl">Title</label>
+      <div class="layui-input-block">
+        <input type="text" name="title" id="f-title" placeholder=""
+               class="layui-input" maxlength="120" />
+      </div>
+    </div>
+
+    <div class="layui-form-item">
+      <label class="layui-form-label" data-i18n="desc">Description</label>
+      <div class="layui-input-block">
+        <textarea name="description" id="f-desc" placeholder=""
+                  class="layui-textarea" rows="6" maxlength="2000"></textarea>
+        <div class="char-count"><span id="desc-len">0</span> / 2000</div>
+      </div>
+    </div>
+
+    <div class="layui-form-item">
+      <label class="layui-form-label" data-i18n="contact">Contact <small style="opacity:.6">(opt.)</small></label>
+      <div class="layui-input-block">
+        <input type="text" name="contact" id="f-contact" placeholder="email / telegram"
+               class="layui-input" maxlength="100" />
+      </div>
+    </div>
+
+    <div class="layui-form-item">
+      <div class="layui-input-block">
+        <button type="button" class="btn-primary" id="submit-btn" data-i18n="submit">Submit Feedback</button>
+        <button type="button" class="btn-ghost" id="reset-btn" data-i18n="reset">Reset</button>
+      </div>
+    </div>
+
+  </form>
+</div>
+
+<div class="card thanks-box" id="thanks-box">
+  <div class="emoji">🪸</div>
+  <h3 data-i18n="thanks">Thank you for your feedback!</h3>
+  <p data-i18n="thanks_msg">Your input helps improve ReefTriage.</p>
+  <button type="button" class="btn-primary" id="copy-btn" data-i18n="copy">Copy Feedback Text</button>
+  <button type="button" class="btn-ghost" id="new-btn" data-i18n="new_feedback">New Feedback</button>
+</div>
+
+<script src="https://cdn.staticfile.org/layui/2.9.16/layui.js"></script>
+<script>
+var I18N = {
+  en: {
+    title:'Feedback',
+    type:'Type', type_feature:'Feature Suggestion', type_bug:'Bug Report',
+    type_data:'Data Issue', type_other:'Other',
+    page:'Source Page', page_macro:'Macro Map', page_micro:'Reef Lab / Micro',
+    page_admin:'Admin System', page_other:'Other',
+    title_lbl:'Title', desc:'Description', contact:'Contact (optional)',
+    submit:'Submit Feedback', reset:'Reset',
+    thanks:'Thank you for your feedback!',
+    thanks_msg:'Your input helps improve ReefTriage.',
+    copy:'Copy Feedback Text', new_feedback:'New Feedback',
+    ph_title:'Brief summary...',
+    ph_desc:'Please describe the issue or suggestion in detail...',
+    ph_contact:'email / telegram (optional)',
+    copied:'Copied to clipboard!',
+    err_title:'Please enter a title',
+    err_desc:'Please enter a description'
+  },
+  zh: {
+    title:'用户反馈',
+    type:'反馈类型', type_feature:'功能建议', type_bug:'Bug 报告',
+    type_data:'数据问题', type_other:'其他',
+    page:'页面来源', page_macro:'宏观地图', page_micro:'微观实验室',
+    page_admin:'管理系统', page_other:'其他',
+    title_lbl:'标题', desc:'详细描述', contact:'联系方式（可选）',
+    submit:'提交反馈', reset:'重置',
+    thanks:'感谢您的反馈！',
+    thanks_msg:'您的意见将帮助改进 ReefTriage。',
+    copy:'复制反馈内容', new_feedback:'新反馈',
+    ph_title:'简要标题...',
+    ph_desc:'请详细描述问题或建议...',
+    ph_contact:'邮箱 / Telegram（可选）',
+    copied:'已复制到剪贴板！',
+    err_title:'请输入标题',
+    err_desc:'请输入详细描述'
+  }
+};
+var lang = localStorage.getItem('reeftriage_lang') || 'en';
+
+function applyLang(){
+  document.querySelectorAll('[data-i18n]').forEach(function(el){
+    var k = el.getAttribute('data-i18n');
+    if(I18N[lang][k]) el.textContent = I18N[lang][k];
+  });
+  document.getElementById('f-title').placeholder = I18N[lang].ph_title;
+  document.getElementById('f-desc').placeholder = I18N[lang].ph_desc;
+  document.getElementById('f-contact').placeholder = I18N[lang].ph_contact;
+  layui.form.render('select');
+}
+
+// char counter
+document.getElementById('f-desc').addEventListener('input', function(){
+  document.getElementById('desc-len').textContent = this.value.length;
+});
+
+// build feedback text
+function buildFeedbackText(){
+  var typeSel = document.getElementById('f-type');
+  var pageSel = document.getElementById('f-page');
+  var typeText = typeSel.options[typeSel.selectedIndex].textContent;
+  var pageText = pageSel.options[pageSel.selectedIndex].textContent;
+  var title = document.getElementById('f-title').value.trim();
+  var desc = document.getElementById('f-desc').value.trim();
+  var contact = document.getElementById('f-contact').value.trim();
+
+  var lines = [
+    '[ReefTriage Feedback]',
+    'Type: ' + typeText,
+    'Page: ' + pageText,
+    'Title: ' + title,
+    '',
+    desc
+  ];
+  if(contact) lines.push('', 'Contact: ' + contact);
+  return lines.join('\n');
+}
+
+// submit
+document.getElementById('submit-btn').addEventListener('click', function(){
+  var title = document.getElementById('f-title').value.trim();
+  var desc = document.getElementById('f-desc').value.trim();
+  if(!title){ layui.layer.msg(I18N[lang].err_title); return; }
+  if(!desc){ layui.layer.msg(I18N[lang].err_desc); return; }
+
+  document.getElementById('form-card').style.display = 'none';
+  document.getElementById('thanks-box').style.display = 'block';
+});
+
+// reset
+document.getElementById('reset-btn').addEventListener('click', function(){
+  document.getElementById('feedback-form').reset();
+  document.getElementById('desc-len').textContent = '0';
+  layui.form.render('select');
+});
+
+// new feedback
+document.getElementById('new-btn').addEventListener('click', function(){
+  document.getElementById('feedback-form').reset();
+  document.getElementById('desc-len').textContent = '0';
+  document.getElementById('thanks-box').style.display = 'none';
+  document.getElementById('form-card').style.display = 'block';
+  layui.form.render('select');
+});
+
+// copy
+document.getElementById('copy-btn').addEventListener('click', function(){
+  var text = buildFeedbackText();
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){
+      layui.layer.msg(I18N[lang].copied);
+    });
+  } else {
+    // fallback
+    var ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    layui.layer.msg(I18N[lang].copied);
+  }
+});
+
+layui.use(['form','layer'], function(){
+  layui.form.render();
+  applyLang();
+});
+</script>
+</body>
+</html>

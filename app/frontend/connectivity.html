@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Connectivity · ReefTriage</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+  html,body{margin:0;height:100%;background:#0a1628;color:#e2e8f0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+  #chart{width:100%;height:100vh;}
+  .top{position:fixed;top:12px;left:16px;z-index:10;}
+  .top h2{color:#00d4ff;font-size:16px;margin:0;}
+  .top p{color:#94a3b8;font-size:11px;margin:2px 0 0;}
+  .legend{position:fixed;bottom:16px;left:16px;z-index:10;background:rgba(13,27,42,.85);
+    border:1px solid rgba(0,212,255,.15);border-radius:8px;padding:10px 14px;font-size:12px;}
+  .legend div{margin:3px 0;}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle;}
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:rgba(13,27,42,0.5);border-radius:3px;}
+  ::-webkit-scrollbar-thumb{background:rgba(0,212,255,0.4);border-radius:3px;}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(0,212,255,0.7);}
+  ::-webkit-scrollbar-corner{background:rgba(13,27,42,0.5);}
+  *{scrollbar-width:thin;scrollbar-color:rgba(0,212,255,0.4) rgba(13,27,42,0.5);}
+  html,body{overflow:hidden;}
+</style>
+</head>
+<body>
+<div class="top">
+  <h2>🌐 <span id="title">Larval Connectivity Network</span></h2>
+  <p id="sub">Node size = final_score · color = decision · edge width = connectivity strength</p>
+</div>
+<div id="chart"></div>
+<div class="legend">
+  <div><span class="dot" style="background:#10b981"></span>Invest</div>
+  <div><span class="dot" style="background:#f59e0b"></span>Monitor</div>
+  <div><span class="dot" style="background:#6b7280"></span>Deprioritize</div>
+</div>
+
+<script>
+var lang = localStorage.getItem('reeftriage_lang') || 'en';
+if(lang === 'zh'){
+  document.getElementById('title').textContent = '幼虫连通性网络';
+  document.getElementById('sub').textContent = '节点大小=final_score · 颜色=决策 · 边粗细=连通强度';
+}
+
+var chart = echarts.init(document.getElementById('chart'));
+var COLOR = {invest:'#10b981', monitor:'#f59e0b', deprioritize:'#6b7280'};
+
+Promise.all([
+  fetch('/api/model/connectivity').then(function(r){return r.json();}),
+  fetch('/api/segments').then(function(r){return r.json();})
+]).then(function(res){
+  var conn = res[0];
+  var segs = (res[1].segments) || [];
+
+  // build name -> segment map
+  var segByName = {};
+  segs.forEach(function(s){ segByName[s.name] = s; if(s.segment_id) segByName[s.segment_id] = s; });
+
+  var names = conn.nodes || [];
+  var matrix = conn.matrix || [];
+
+  var nodes = names.map(function(n, i){
+    var s = segByName[n] || segByName['R' + String(i+1).padStart(2,'0')] || {};
+    var score = s.score || s.final_score || 20;
+    var choice = s.choice || 'deprioritize';
+    return {
+      id: String(i), name: n,
+      symbolSize: Math.max(10, score / 2.5),
+      itemStyle: {color: COLOR[choice] || '#6b7280', shadowBlur: 10,
+                  shadowColor: COLOR[choice] || '#6b7280'},
+      label: {show: true, color: '#e2e8f0', fontSize: 10},
+      _score: score, _choice: choice, _id: s.segment_id || ''
+    };
+  });
+
+  // build edges (threshold to avoid clutter)
+  var edgeSet = [];
+  var allVals = [];
+  matrix.forEach(function(row){ row.forEach(function(v){ if(v>0) allVals.push(v); }); });
+  var thr = allVals.length ? allVals.sort(function(a,b){return a-b;})[Math.floor(allVals.length*0.85)] : 1;
+  matrix.forEach(function(row, i){
+    row.forEach(function(v, j){
+      if(i!==j && v >= thr){
+        edgeSet.push({source: String(i), target: String(j),
+          value: v, lineStyle:{width: Math.min(6, v*2), opacity: 0.4, color:'#00d4ff'}});
+      }
+    });
+  });
+
+  chart.setOption({
+    backgroundColor: 'transparent',
+    tooltip: {formatter: function(p){
+      if(p.dataType === 'node'){
+        var d = p.data;
+        return '<b>'+d.name+'</b><br>'+
+          'ID: '+d._id+'<br>Score: '+d._score+'<br>Choice: '+d._choice;
+      }
+      return p.data.source + ' → ' + p.data.target + '<br>Strength: ' + p.data.value.toFixed(3);
+    }},
+    series: [{
+      type: 'graph', layout: 'force',
+      roam: true, draggable: true,
+      force: {repulsion: 200, edgeLength: [60, 160]},
+      emphasis: {focus: 'adjacency'},
+      data: nodes, links: edgeSet
+    }]
+  });
+}).catch(function(e){
+  document.getElementById('chart').innerHTML = '<pre style="color:#f59e0b;padding:20px">⚠ connectivity data error: '+e+'</pre>';
+});
+
+window.addEventListener('resize', function(){ chart.resize(); });
+</script>
+</body>
+</html>

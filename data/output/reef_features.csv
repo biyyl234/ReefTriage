@@ -1,0 +1,29 @@
+﻿segment_id,name,current_dhw,current_sst,max_dhw_5yr,mean_depth,min_depth,reef_area_km2,distance_to_nearest_dive_site_km,dive_sites_within_5km,lat,lon,depth_source
+R01,Sipadan Barracuda Point,0.0,29.65,6.79,5.0,1.0,1.192,0.0,6,4.115,118.635,literature_estimate
+R02,Sipadan Drop Off,0.0,29.65,6.79,8.0,2.0,0.994,0.0,6,4.11,118.628,literature_estimate
+R03,Sipadan Turtle Cave,0.0,29.65,6.79,5.0,1.0,0.795,0.0,6,4.118,118.633,literature_estimate
+R04,Sipadan West Ridge,0.0,29.65,6.79,6.0,2.0,0.795,0.4,6,4.112,118.625,literature_estimate
+R05,Mabul Coral Garden,0.0,29.6,6.95,5.0,1.0,1.192,0.0,6,4.15,118.64,literature_estimate
+R06,Mabul Lobster Wall,0.0,29.65,6.79,10.0,3.0,0.994,0.0,6,4.145,118.625,literature_estimate
+R07,Mabul Jetty Reef,0.0,29.6,6.95,3.0,1.0,0.795,0.6,6,4.152,118.635,literature_estimate
+R08,Kapalai House Reef,0.0,29.65,6.79,3.0,0.5,0.994,0.0,6,4.133,118.618,literature_estimate
+R09,Kapalai Reef Flat,0.0,29.65,6.79,2.0,0.5,0.795,0.56,6,4.13,118.622,literature_estimate
+R10,Bodgaya Reef North,0.0,30.02,3.84,5.0,1.0,1.49,0.22,1,4.685,118.85,literature_estimate
+R11,Bodgaya Reef South,0.0,30.01,3.56,8.0,2.0,1.192,1.05,1,4.675,118.855,literature_estimate
+R12,Boheydulang Wall,0.0,29.95,3.61,4.0,1.0,1.49,0.0,3,4.633,118.833,etopo_2022
+R13,Boheydulang Lagoon,0.0,29.95,3.61,5.7,2.0,1.192,0.78,3,4.628,118.838,etopo_2022
+R14,Sibuan Reef,0.0,29.95,3.61,3.0,1.0,0.994,0.0,3,4.6,118.85,literature_estimate
+R15,Mantabuan Patch Reef,0.0,29.87,3.42,10.0,3.0,0.994,0.0,1,4.583,118.8,literature_estimate
+R16,Tetagan Reef,0.0,29.89,4.4,5.0,1.0,0.795,4.12,2,4.55,118.783,literature_estimate
+R17,Maiga Reef,0.0,29.93,3.24,5.0,1.0,0.994,2.67,3,4.617,118.867,literature_estimate
+R18,Tagbalatang Reef,0.15,30.15,4.37,8.0,2.0,1.49,0.04,1,4.725,119.21,literature_estimate
+R19,Tagbalatang North,0.14,30.05,3.47,16.2,1.0,1.192,2.04,1,4.74,119.2,etopo_2022
+R20,Eastern Patch Reef 1,0.61,30.21,6.25,15.0,5.0,0.994,0.05,1,4.622,119.278,literature_estimate
+R21,Eastern Patch Reef 2,0.0,29.88,3.18,21.0,15.0,1.192,0.03,1,4.621,119.145,etopo_2022
+R22,Church Reef,0.0,29.89,8.22,12.0,4.0,1.192,0.02,1,4.675,118.649,literature_estimate
+R23,Western Patch Reef,0.0,30.12,11.32,26.3,24.0,1.49,0.36,11,4.735,118.285,etopo_2022
+R24,Western North Reef,0.0,30.06,10.65,15.0,5.0,0.994,0.23,6,4.795,118.3,literature_estimate
+R25,Bum Bum Reef,0.0,30.11,9.92,4.8,3.0,1.49,7.42,0,4.45,118.65,etopo_2022
+R26,Timbalan Reef,0.0,29.79,6.99,16.2,14.0,1.49,7.72,0,4.333,118.75,etopo_2022
+R27,Kalampunian Reef,0.14,29.78,8.08,10.0,3.0,0.994,8.6,0,4.2,118.5,literature_estimate
+R28,Semporna Port Reef,0.0,30.03,9.03,5.0,2.0,0.795,1.96,2,4.48,118.61,literature_estimate

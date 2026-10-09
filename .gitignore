@@ -1,0 +1,86 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# 环境 / IDE
+.env
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# 大型原始与中间数据（不入库，需通过脚本重新下载）
+data/raw/
+data/processed/
+connectivity/data/
+*.nc
+*.h5
+*.hdf
+
+# 日志
+*.log
+logs/
+
+# 系统
+.Rhistory
+
+# NocoBase (子目录)
+nocobase/node_modules/
+nocobase/.env
+nocobase/.env.*
+!nocobase/.env.example
+nocobase/storage/
+nocobase/dist/
+nocobase/coverage/
+nocobase/*.log
+nocobase/pm2.log
+nocobase/.cache/
+nocobase/packages/plugins/*/node_modules/
+nocobase/packages/plugins/*/dist/
+nocobase/packages/plugins/*/lib/
+nocobase/packages/plugins/*/esm/
+
+# PostgreSQL 便携版（如果放在项目内）
+pg17/
+pgsql/
+postgres*/
+*.sqlite
+*.sqlite3
+
+# 临时文件
+*.tmp
+*.bak
+Thumbs.db
+
+# Node.js
+node_modules/
+
+# Remotion render temp
+video-remotion/out/
+
+# 原始损坏录屏（体积大且无法直接播放，processed/ 中为修复后版本）
+videorec_clean/*_raw.mp4
+videorec_clean/
+videorec/
+
+# 视频临时文件
+submission/video/temp/
+submission/video/verify_frames/
+submission/video/masks/
+submission/video/final_audio.wav
+submission/video/ReefTriage_demo_v1.mp4
+
+# Remotion
+video-remotion/node_modules/
+video-remotion/out/
+video-remotion/.cache/

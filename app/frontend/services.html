@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Services · ReefTriage</title>
+<link rel="stylesheet" href="https://cdn.staticfile.org/layui/2.9.16/css/layui.css" />
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+  :root{
+    --bg:#0a1628; --panel:rgba(13,27,42,0.85); --primary:#00d4ff;
+    --invest:#10b981; --monitor:#f59e0b; --deprior:#6b7280;
+    --text:#e2e8f0; --muted:#94a3b8; --border:rgba(0,212,255,0.15);
+  }
+  body{margin:0;background:var(--bg);color:var(--text);padding:16px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+  h2{color:var(--primary);font-size:18px;margin:0 0 4px;}
+  .sub{color:var(--muted);font-size:12px;margin-bottom:16px;}
+  .header-row{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;}
+  .refresh-btn{
+    background:rgba(0,212,255,.1);border:1px solid var(--border);color:var(--primary);
+    border-radius:4px;padding:5px 12px;cursor:pointer;font-size:12px;
+    transition:background .15s;
+  }
+  .refresh-btn:hover{background:rgba(0,212,255,.2);}
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .refresh-btn.rotating { animation: spin 0.6s linear; }
+  .svc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;}
+  .svc-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;
+    padding:18px;backdrop-filter:blur(12px);position:relative;overflow:hidden;}
+  .svc-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+    background:linear-gradient(90deg,var(--primary),transparent);opacity:.6;}
+  .svc-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .svc-name{font-size:16px;font-weight:600;}
+  .svc-port{color:var(--muted);font-size:12px;}
+  .svc-status{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:3px 10px;border-radius:12px;}
+  .svc-status.on{background:rgba(16,185,129,.15);color:var(--invest);}
+  .svc-status.off{background:rgba(107,114,128,.15);color:var(--deprior);}
+  .svc-status .dot{width:8px;height:8px;border-radius:50%;}
+  .svc-status.on .dot{background:var(--invest);box-shadow:0 0 6px var(--invest);}
+  .svc-status.off .dot{background:var(--deprior);}
+  .gauge{width:100%;height:150px;margin-top:6px;}
+  .svc-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:6px;}
+  .svc-meta b{color:var(--text);}
+  .refresh-info{color:var(--muted);font-size:11px;margin-top:14px;text-align:right;}
+
+  /* ---- Data refresh (更新数据) panel ---- */
+  .refresh-panel{
+    background:var(--panel);border:1px solid var(--border);border-radius:10px;
+    padding:18px;margin-bottom:16px;backdrop-filter:blur(12px);position:relative;overflow:hidden;
+  }
+  .refresh-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+    background:linear-gradient(90deg,var(--primary),transparent);opacity:.6;}
+  .refresh-panel h3{color:var(--primary);font-size:15px;margin:0 0 4px;}
+  .refresh-panel .rp-sub{color:var(--muted);font-size:12px;margin-bottom:12px;}
+  .rp-row{display:flex;align-items:center;flex-wrap:wrap;gap:10px;}
+  .ds-chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text);
+    background:rgba(0,212,255,.06);border:1px solid var(--border);border-radius:14px;
+    padding:4px 12px;cursor:pointer;user-select:none;transition:background .15s;}
+  .ds-chip input{margin:0;accent-color:var(--primary);cursor:pointer;}
+  .ds-chip.locked{opacity:.55;cursor:not-allowed;}
+  .ds-chip .lock{font-size:11px;}
+  .data-refresh-btn{
+    background:linear-gradient(135deg,rgba(0,212,255,.25),rgba(0,212,255,.08));
+    border:1px solid var(--primary);color:var(--primary);
+    border-radius:6px;padding:7px 18px;cursor:pointer;font-size:13px;font-weight:600;
+    transition:all .15s;box-shadow:0 0 12px rgba(0,212,255,.15);
+  }
+  .data-refresh-btn:hover{background:rgba(0,212,255,.35);box-shadow:0 0 18px rgba(0,212,255,.3);}
+  .data-refresh-btn:disabled{opacity:.55;cursor:not-allowed;box-shadow:none;}
+  .rp-status{font-size:12px;margin-left:auto;}
+  .rp-status.ok{color:var(--invest);} .rp-status.err{color:#f87171;} .rp-status.run{color:var(--primary);}
+  .rp-log{
+    margin-top:12px;background:rgba(5,12,24,.85);border:1px solid var(--border);
+    border-radius:8px;padding:12px;font-family:Consolas,Menlo,monospace;font-size:11.5px;
+    color:#cbd5e1;max-height:340px;overflow:auto;white-space:pre-wrap;word-break:break-all;
+    display:none;
+  }
+  .rp-log.show{display:block;}
+  .rp-step{margin-bottom:10px;border-left:2px solid var(--border);padding-left:10px;}
+  .rp-step.ok{border-left-color:var(--invest);}
+  .rp-step.error{border-left-color:#f87171;}
+  .rp-step-head{font-weight:600;}
+  .rp-step.ok .rp-step-head{color:var(--invest);}
+  .rp-step.error .rp-step-head{color:#f87171;}
+  .rp-step .stdout{color:#94a3b8;margin-top:4px;}
+  .rp-step .stderr{color:#fca5a5;margin-top:2px;}
+  .rp-hint{margin-top:8px;padding:8px 10px;border-radius:6px;font-size:12px;
+    background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);color:#fcd34d;}
+
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:rgba(13,27,42,0.5);border-radius:3px;}
+  ::-webkit-scrollbar-thumb{background:rgba(0,212,255,0.4);border-radius:3px;}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(0,212,255,0.7);}
+  ::-webkit-scrollbar-corner{background:rgba(13,27,42,0.5);}
+  *{scrollbar-width:thin;scrollbar-color:rgba(0,212,255,0.4) rgba(13,27,42,0.5);}
+  body{overflow-x:hidden;}
+</style>
+</head>
+<body>
+<div class="header-row">
+  <div>
+    <h2 data-i18n="title">📊 Service Monitor</h2>
+    <div class="sub" data-i18n="sub">Real-time health of ReefTriage microservices · auto-refresh every 30s</div>
+  </div>
+  <button class="refresh-btn" id="refresh-btn">↻ <span data-i18n="refresh">Refresh</span></button>
+</div>
+
+<div class="svc-grid" id="svc-grid"></div>
+
+<!-- 手动数据接入面板 -->
+<div class="refresh-panel">
+  <h3 data-i18n="dr_title">🔄 数据接入 / Data Refresh</h3>
+  <div class="rp-sub" data-i18n="dr_sub">手动拉取最新海洋观测数据并重新评分 (无后台定时任务)</div>
+  <div class="rp-row">
+    <label class="ds-chip"><input type="checkbox" id="ds-crw" checked> NOAA CRW DHW/SST</label>
+    <label class="ds-chip"><input type="checkbox" id="ds-bathymetry" checked> ETOPO 水深</label>
+    <label class="ds-chip"><input type="checkbox" id="ds-osm" checked> OSM 潜点</label>
+    <label class="ds-chip locked" title="需要注册"><input type="checkbox" id="ds-copernicus"> Copernicus <span class="lock">🔒需注册</span></label>
+    <button class="data-refresh-btn" id="data-refresh-btn">🔄 <span data-i18n="dr_btn">更新数据</span></button>
+    <span class="rp-status" id="rp-status"></span>
+  </div>
+  <div class="rp-log" id="rp-log"></div>
+</div>
+
+<div class="refresh-info" id="refresh-info"></div>
+
+<script>
+var I18N = {
+  en: {title:'📊 Service Monitor', sub:'Real-time health of ReefTriage microservices · auto-refresh every 30s',
+       online:'ONLINE', offline:'OFFLINE', port:'Port', latency:'Latency', version:'Version',
+       refreshed:'Last refresh', never:'never', refresh:'Refresh',
+       dr_title:'🔄 Data Refresh', dr_sub:'Manually pull latest ocean observations and rescore (no background cron)',
+       dr_btn:'Update Data'},
+  zh: {title:'📊 服务监控', sub:'ReefTriage 微服务实时健康状态 · 每30秒自动刷新',
+       online:'在线', offline:'离线', port:'端口', latency:'响应时间', version:'版本',
+       refreshed:'上次刷新', never:'从未', refresh:'刷新',
+       dr_title:'🔄 数据接入', dr_sub:'手动拉取最新海洋观测数据并重新评分 (无后台定时任务)',
+       dr_btn:'更新数据'}
+};
+var lang = localStorage.getItem('reeftriage_lang') || 'en';
+function t(k){ return I18N[lang][k] || k; }
+function applyLang(){
+  document.querySelectorAll('[data-i18n]').forEach(function(el){
+    var k = el.getAttribute('data-i18n');
+    if(I18N[lang][k]) el.textContent = I18N[lang][k];
+  });
+}
+
+var SERVICES = [
+  {key:'reeftriage', name:'ReefTriage',  port:8000, probe:'/api/health',     ver:'v1.1.0'},
+  {key:'laya',       name:'Laya / Jev',  port:5000, probe:'/api/laya-status',ver:'—'},
+  {key:'postgres',   name:'PostgreSQL',  port:5432, probe:null,             ver:'15.x'},
+  {key:'nocobase',   name:'NocoBase',    port:13000,probe:null,             ver:'—'}
+];
+
+var charts = {};
+
+function renderCards(){
+  var grid = document.getElementById('svc-grid');
+  grid.innerHTML = '';
+  SERVICES.forEach(function(s){
+    var card = document.createElement('div');
+    card.className = 'svc-card';
+    card.id = 'card-' + s.key;
+    card.innerHTML =
+      '<div class="svc-head">'+
+        '<div><div class="svc-name">'+s.name+'</div><div class="svc-port">:'+s.port+'</div></div>'+
+        '<span class="svc-status off" id="st-'+s.key+'"><span class="dot"></span><span>'+t('offline')+'</span></span>'+
+      '</div>'+
+      '<div class="gauge" id="g-'+s.key+'"></div>'+
+      '<div class="svc-meta"><span>'+t('latency')+': <b id="lat-'+s.key+'">—</b></span>'+
+      '<span>'+t('version')+': <b>'+s.ver+'</b></span></div>';
+    grid.appendChild(card);
+    var c = echarts.init(document.getElementById('g-'+s.key));
+    charts[s.key] = c;
+    c.setOption(gaugeOption(0, false));
+  });
+  // re-measure once layout + scrollbar settle (avoids right-edge clipping)
+  requestAnimationFrame(function(){
+    Object.keys(charts).forEach(function(k){ try{charts[k].resize();}catch(e){} });
+  });
+  setTimeout(function(){
+    Object.keys(charts).forEach(function(k){ try{charts[k].resize();}catch(e){} });
+  }, 200);
+}
+
+function gaugeOption(val, up){
+  return {
+    series:[{
+      type:'gauge', startAngle:200, endAngle:-20, min:0, max:500, radius:'72%',
+      center:['50%','55%'],
+      progress:{show:true, width:8, itemStyle:{color: up?'#10b981':'#6b7280'}},
+      axisLine:{lineStyle:{width:8, color:[[1,'rgba(0,212,255,0.1)']]}},
+      pointer:{show:false}, axisTick:{show:false}, splitLine:{show:false},
+      axisLabel:{show:false}, anchor:{show:false},
+      detail:{valueAnimation:false, formatter:'{value} ms', color: up?'#e2e8f0':'#6b7280',
+              fontSize:16, offsetCenter:[0,'10%']},
+      data:[{value:val}]
+    }]
+  };
+}
+
+function probe(url){
+  return new Promise(function(resolve){
+    if(!url){ resolve({latency:null, ok:null}); return; }
+    var t0 = performance.now();
+    fetch(url).then(function(r){
+      var dt = Math.round(performance.now() - t0);
+      resolve({latency:dt, ok:r.ok});
+    }).catch(function(){
+      var dt = Math.round(performance.now() - t0);
+      resolve({latency:dt, ok:false});
+    });
+  });
+}
+
+function refresh(){
+  fetch('/api/services-status').then(function(r){return r.json();}).then(function(data){
+    var s = data.services || {};
+    SERVICES.forEach(function(svc){
+      var info = s[svc.key] || {};
+      var up = info.status === 'ok';
+      var st = document.getElementById('st-'+svc.key);
+      st.className = 'svc-status ' + (up?'on':'off');
+      st.querySelector('span:last-child').textContent = up ? t('online') : t('offline');
+      // probe latency
+      probe(svc.probe).then(function(p){
+        var lat = (p.latency !== null) ? p.latency : (up ? 1 : 0);
+        if(charts[svc.key]) charts[svc.key].setOption(gaugeOption(lat, up));
+        var latEl = document.getElementById('lat-'+svc.key);
+        if(latEl) latEl.textContent = (p.latency !== null) ? p.latency + ' ms' : (up ? '—' : '—');
+      });
+    });
+    document.getElementById('refresh-info').textContent =
+      t('refreshed') + ': ' + new Date().toLocaleTimeString();
+  }).catch(function(){
+    document.getElementById('refresh-info').textContent = '⚠ services-status unreachable';
+  });
+}
+
+window.addEventListener('resize', function(){
+  Object.keys(charts).forEach(function(k){ try{charts[k].resize();}catch(e){} });
+});
+
+document.getElementById('refresh-btn').addEventListener('click', function(){
+  var btn = this;
+  btn.classList.remove('rotating');
+  void btn.offsetWidth; /* reflow to restart animation */
+  btn.classList.add('rotating');
+  refresh();
+  setTimeout(function(){ btn.classList.remove('rotating'); }, 600);
+});
+
+// ---- 手动数据刷新 (更新数据) ----
+function collectSources(){
+  var s = [];
+  [['ds-crw','crw'],['ds-bathymetry','bathymetry'],['ds-osm','osm'],['ds-copernicus','copernicus']]
+    .forEach(function(pair){
+      var el = document.getElementById(pair[0]);
+      if(el && el.checked) s.push(pair[1]);
+    });
+  return s;
+}
+
+function esc(s){
+  return String(s==null?'':s).replace(/[&<>"]/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
+  });
+}
+
+function renderRefreshResult(data){
+  var log = document.getElementById('rp-log');
+  var html = '';
+  (data.steps||[]).forEach(function(st){
+    var cls = st.status==='ok' ? 'ok' : (st.status==='error' ? 'error' : '');
+    var head = (st.label || st.script || st.phase || 'step');
+    var meta = '';
+    if(st.duration_s!=null) meta += '  ('+st.duration_s+'s)';
+    if(st.returncode!=null) meta += '  [rc='+st.returncode+']';
+    html += '<div class="rp-step '+cls+'">';
+    html += '<div class="rp-step-head">'+(st.status==='ok'?'✅ ':'❌ ')+esc(head)+esc(meta)+'</div>';
+    if(st.backed_up && st.backed_up.length){
+      html += '<div class="stdout">  ↩ backed up: '+esc(st.backed_up.join(', '))+'</div>';
+    }
+    if(st.stdout) html += '<div class="stdout">'+esc(st.stdout)+'</div>';
+    if(st.stderr) html += '<div class="stderr">'+esc(st.stderr)+'</div>';
+    if(st.error) html += '<div class="stderr">ERROR: '+esc(st.error)+'</div>';
+    html += '</div>';
+  });
+  (data.skipped||[]).forEach(function(s){
+    html += '<div class="rp-step"><div class="rp-step-head">⏭ skipped: '+esc(s.source)+'</div>'+
+            '<div class="stdout">'+esc(s.reason)+'</div></div>';
+  });
+  (data.hints||[]).forEach(function(h){
+    html += '<div class="rp-hint">💡 '+esc(h)+'</div>';
+  });
+  if(data.engine_reload){
+    html += '<div class="rp-step '+(data.engine_reload.reloaded?'ok':'error')+'">'+
+      '<div class="rp-step-head">'+(data.engine_reload.reloaded?'✅ ':'⚠ ')+'engine cache reload</div>'+
+      '<div class="stdout">'+esc(JSON.stringify(data.engine_reload))+'</div></div>';
+  }
+  log.innerHTML = html;
+  log.classList.add('show');
+}
+
+document.getElementById('data-refresh-btn').addEventListener('click', function(){
+  var btn = this;
+  var status = document.getElementById('rp-status');
+  var sources = collectSources();
+  if(sources.length === 0){
+    status.className = 'rp-status err';
+    status.textContent = lang==='zh' ? '请至少勾选一个数据源' : 'Select at least one source';
+    return;
+  }
+  btn.disabled = true;
+  status.className = 'rp-status run';
+  status.textContent = lang==='zh' ? '⏳ 正在拉取数据, 请耐心等待 (可能数分钟)...' : '⏳ Pulling data, please wait (may take minutes)...';
+  document.getElementById('rp-log').classList.add('show');
+  document.getElementById('rp-log').textContent = lang==='zh'
+    ? '请求已发送, 正在执行: '+sources.join(', ')+' ...'
+    : 'Request sent, running: '+sources.join(', ')+' ...';
+
+  fetch('/api/data-refresh', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({sources: sources, force: true})
+  }).then(function(r){ return r.json(); })
+    .then(function(data){
+      renderRefreshResult(data);
+      var sum = data.summary || {};
+      if(data.status === 'ok'){
+        status.className = 'rp-status ok';
+        status.textContent = '✅ '+ (lang==='zh'?'完成':'Done') +
+          ' ('+sum.steps_ok+' ok / '+sum.steps_error+' err)';
+      } else if(data.status === 'partial'){
+        status.className = 'rp-status err';
+        status.textContent = '⚠ '+ (lang==='zh'?'部分完成':'Partial') +
+          ' ('+sum.steps_ok+' ok / '+sum.steps_error+' err), 详见日志';
+      } else {
+        status.className = 'rp-status err';
+        status.textContent = '❌ '+ (lang==='zh'?'失败':'Failed') +', 详见日志';
+      }
+      // 刷新后顺手更新服务监控卡片
+      refresh();
+    })
+    .catch(function(e){
+      status.className = 'rp-status err';
+      status.textContent = '❌ '+e;
+    })
+    .finally(function(){ btn.disabled = false; });
+});
+
+applyLang();
+renderCards();
+refresh();
+setInterval(refresh, 30000);
+</script>
+</body>
+</html>

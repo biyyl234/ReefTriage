@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ReefTriage · Draw & Report 区域绘制</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+<link rel="stylesheet" href="https://cdn.staticfile.org/layui/2.9.16/css/layui.css" />
+<style>
+  :root{
+    --bg:#0a1628; --panel:#0d1b2a; --primary:#00d4ff;
+    --invest:#10b981; --monitor:#f59e0b; --deprior:#6b7280;
+    --text:#e2e8f0; --muted:#94a3b8; --border:rgba(0,212,255,0.15);
+  }
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+  *{box-sizing:border-box;}
+
+  /* 6px cyan scrollbar */
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:rgba(13,27,42,0.5);border-radius:3px;}
+  ::-webkit-scrollbar-thumb{background:rgba(0,212,255,0.4);border-radius:3px;}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(0,212,255,0.7);}
+  *{scrollbar-width:thin;scrollbar-color:rgba(0,212,255,0.4) rgba(13,27,42,0.5);}
+
+  /* ===== Top bar ===== */
+  .dr-topbar{height:48px;display:flex;align-items:center;gap:10px;padding:0 16px;
+    background:var(--panel);border-bottom:1px solid var(--border);z-index:1100;}
+  .dr-topbar h2{font-size:15px;margin:0;color:var(--primary);font-weight:600;}
+  .dr-hint{font-size:12px;color:var(--muted);}
+  .dr-spacer{flex:1;}
+  .dr-btn{background:rgba(0,212,255,.1);border:1px solid var(--border);color:var(--primary);
+    border-radius:4px;padding:5px 12px;cursor:pointer;font-size:12px;}
+  .dr-btn:hover{background:rgba(0,212,255,.2);}
+  .dr-btn.primary{background:var(--primary);color:#0a1628;font-weight:600;}
+  .dr-btn.primary:hover{background:#33dcff;}
+  .dr-btn:disabled{opacity:.4;cursor:not-allowed;}
+
+  /* metric toggle button group */
+  .dr-metric-group{display:flex;gap:0;border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+  .dr-metric-group .dr-btn{border:none;border-radius:0;border-right:1px solid var(--border);}
+  .dr-metric-group .dr-btn:last-child{border-right:none;}
+  .dr-metric-group .dr-btn.primary{background:var(--primary);color:#0a1628;}
+
+  /* ===== Map ===== */
+  #dr-map{position:absolute;top:48px;left:0;right:0;bottom:0;background:#0a1628;}
+
+  /* legend on map — gradient colorbar */
+  .dr-legend{position:absolute;bottom:20px;left:12px;z-index:1000;background:rgba(13,27,42,.92);
+    border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--muted);min-width:160px;}
+  .dr-legend .r{display:flex;align-items:center;gap:6px;margin:2px 0;}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;}
+  .dr-legend-title{color:var(--primary);margin-bottom:4px;font-size:11px;letter-spacing:.5px;}
+  .dr-legend-bar{height:10px;border-radius:2px;margin:4px 0;}
+  .dr-legend-scale{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);}
+
+  /* ===== Summary side panel ===== */
+  .dr-panel{position:absolute;top:58px;right:12px;bottom:60px;width:330px;z-index:1050;
+    background:rgba(13,27,42,.95);border:1px solid var(--border);border-radius:8px;
+    box-shadow:0 4px 24px rgba(0,0,0,.5);backdrop-filter:blur(10px);
+    display:flex;flex-direction:column;transform:translateX(360px);transition:transform .25s ease;}
+  .dr-panel.open{transform:translateX(0);}
+  .dr-panel-head{padding:12px 14px;border-bottom:1px solid var(--border);
+    display:flex;justify-content:space-between;align-items:center;}
+  .dr-panel-head h3{margin:0;font-size:14px;color:var(--primary);}
+  .dr-panel-close{cursor:pointer;color:var(--muted);font-size:18px;line-height:1;padding:0 4px;}
+  .dr-panel-close:hover{color:var(--text);}
+  .dr-panel-body{flex:1;overflow-y:auto;padding:12px 14px;}
+  .dr-stat{background:rgba(0,212,255,.06);border:1px solid var(--border);border-radius:6px;
+    padding:8px 10px;margin-bottom:8px;}
+  .dr-stat .k{font-size:11px;color:var(--muted);letter-spacing:.5px;}
+  .dr-stat .v{font-size:18px;color:var(--primary);font-weight:600;font-variant-numeric:tabular-nums;}
+  .dr-stat .v small{font-size:11px;color:var(--muted);font-weight:400;margin-left:4px;}
+  .dr-section-title{font-size:11px;color:var(--primary);letter-spacing:1px;margin:12px 0 6px;
+    text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:3px;}
+  .dr-seg-list{margin-top:8px;}
+  .dr-seg-row{display:flex;align-items:center;gap:8px;padding:6px 4px;
+    border-bottom:1px solid rgba(148,163,184,.1);font-size:12px;}
+  .dr-seg-row .sid{color:var(--primary);font-weight:600;width:36px;}
+  .dr-seg-row .sname{flex:1;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .dr-seg-row .sscore{color:var(--text);font-variant-numeric:tabular-nums;width:34px;text-align:right;}
+  .dr-seg-row .sdot{width:8px;height:8px;border-radius:50%;}
+  .dr-seg-row.priority{background:rgba(245,158,11,.08);border-left:2px solid #f59e0b;}
+  .dr-panel-foot{padding:10px 14px;border-top:1px solid var(--border);}
+  .dr-panel-foot .dr-btn{width:100%;}
+
+  /* leaflet-draw toolbar dark tweak */
+  .leaflet-draw-toolbar a{background-color:#0d1b2a !important;color:#e2e8f0;}
+  .leaflet-draw-toolbar a:hover{background-color:rgba(0,212,255,.2) !important;}
+  .leaflet-draw-actions{background:#0d1b2a !important;}
+  .leaflet-draw-actions a{color:var(--primary) !important;}
+</style>
+</head>
+<body>
+
+<div class="dr-topbar">
+  <h2>✏️ <span data-i18n="title">Draw &amp; Report</span></h2>
+  <span class="dr-hint" data-i18n="hint">Draw a polygon / rectangle / circle on the map to find reef segments inside.</span>
+  <div class="dr-metric-group" id="metric-group">
+    <button class="dr-btn primary" data-metric="dhw">🌡️ <span data-i18n="mDhw">DHW</span></button>
+    <button class="dr-btn" data-metric="risk">⚠️ <span data-i18n="mRisk">Bleach Risk</span></button>
+    <button class="dr-btn" data-metric="cost">💰 <span data-i18n="mCost">Cost</span></button>
+  </div>
+  <div class="dr-spacer"></div>
+  <button class="dr-btn" id="clear-btn">🗑 <span data-i18n="clear">Clear Drawing</span></button>
+  <button class="dr-btn primary" id="report-btn" disabled>📄 <span data-i18n="report">Generate Region Report</span></button>
+  <button class="dr-btn" id="lang-btn">中文</button>
+</div>
+
+<div id="dr-map">
+  <div class="dr-legend" id="dr-legend">
+    <div class="dr-legend-title" id="legend-title">DHW (°C-weeks)</div>
+    <div class="dr-legend-bar" id="legend-bar"></div>
+    <div class="dr-legend-scale">
+      <span id="legend-min">0</span><span id="legend-mid">4</span><span id="legend-max">8+</span>
+    </div>
+  </div>
+</div>
+
+<!-- Summary side panel -->
+<aside class="dr-panel" id="dr-panel">
+  <div class="dr-panel-head">
+    <h3 data-i18n="panelTitle">Region Summary</h3>
+    <span class="dr-panel-close" id="panel-close">×</span>
+  </div>
+  <div class="dr-panel-body">
+    <div class="dr-section-title" data-i18n="secSegments">Reef Segments</div>
+    <div class="dr-stat">
+      <div class="k" data-i18n="segCount">Segments in region</div>
+      <div class="v"><span id="st-count">0</span></div>
+    </div>
+    <div class="dr-stat">
+      <div class="k" data-i18n="avgScore">Average Score</div>
+      <div class="v"><span id="st-avg">0.0</span></div>
+    </div>
+    <div class="dr-stat">
+      <div class="k" data-i18n="investMonitor">Invest / Monitor</div>
+      <div class="v"><span id="st-invest">0</span><small>invest</small> / <span id="st-monitor">0</span><small>monitor</small></div>
+    </div>
+    <div class="dr-stat">
+      <div class="k" data-i18n="cost">Total Restoration Cost</div>
+      <div class="v">$<span id="st-cost">0</span></div>
+    </div>
+
+    <div class="dr-section-title" data-i18n="secGrid">CRW 5km Grid</div>
+    <div class="dr-stat">
+      <div class="k" data-i18n="gridCount">Grid Cells</div>
+      <div class="v"><span id="st-gridcount">0</span></div>
+    </div>
+    <div class="dr-stat">
+      <div class="k" data-i18n="dhwAvgMax">Avg / Max DHW</div>
+      <div class="v"><span id="st-avgdhw">0.0</span><small>/</small> <span id="st-maxdhw">0.0</span><small>°C-wk</small></div>
+    </div>
+    <div class="dr-stat">
+      <div class="k" data-i18n="highRiskPct">High-risk Cells (risk≥50)</div>
+      <div class="v"><span id="st-highrisk">0.0</span><small>%</small></div>
+    </div>
+    <div class="dr-stat">
+      <div class="k" data-i18n="gridCost">Grid Restoration Cost</div>
+      <div class="v">$<span id="st-gridcost">0</span></div>
+    </div>
+
+    <div class="dr-section-title" data-i18n="secRecs">Recommended Priority Recovery</div>
+    <div class="dr-seg-list" id="seg-list"></div>
+  </div>
+  <div class="dr-panel-foot">
+    <button class="dr-btn primary" id="panel-report-btn" data-i18n="report" disabled>Generate Region Report</button>
+  </div>
+</aside>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+<script src="https://cdn.staticfile.org/layui/2.9.16/layui.js"></script>
+<script>
+layui.use(['layer'], function(){
+  var layer = layui.layer;
+  var $ = layui.$;
+
+  // ---------- i18n ----------
+  var I18N = {
+    en: {
+      title:'Draw & Report',
+      hint:'Draw a polygon / rectangle / circle on the map to find reef segments inside.',
+      clear:'Clear Drawing', report:'Generate Region Report',
+      mDhw:'DHW', mRisk:'Bleach Risk', mCost:'Cost',
+      panelTitle:'Region Summary',
+      secSegments:'Reef Segments', secGrid:'CRW 5km Grid', secRecs:'Recommended Priority Recovery',
+      segCount:'Segments in region', avgScore:'Average Score',
+      investMonitor:'Invest / Monitor', cost:'Segment Restoration Cost',
+      gridCount:'Grid Cells', dhwAvgMax:'Avg / Max DHW',
+      highRiskPct:'High-risk Cells (risk≥50)', gridCost:'Grid Restoration Cost',
+      noHit:'No reef segments in the drawn region.',
+      err:'Request failed',
+      invest:'invest', monitor:'monitor',
+      starRec:'★ Priority Recovery'
+    },
+    zh: {
+      title:'区域绘制报告',
+      hint:'在地图上绘制多边形 / 矩形 / 圆形，查找落在区域内的礁段。',
+      clear:'清除绘制', report:'生成区域报告',
+      mDhw:'DHW热周', mRisk:'白化风险', mCost:'修复成本',
+      panelTitle:'区域汇总',
+      secSegments:'礁段', secGrid:'CRW 5km 网格', secRecs:'建议优先恢复',
+      segCount:'区域内礁段数', avgScore:'平均评分',
+      investMonitor:'投入 / 观察', cost:'礁段修复成本',
+      gridCount:'网格格点数', dhwAvgMax:'平均 / 最大 DHW',
+      highRiskPct:'高风险格点占比 (risk≥50)', gridCost:'网格修复总成本',
+      noHit:'绘制区域内没有礁段。',
+      err:'请求失败',
+      invest:'投入', monitor:'观察',
+      starRec:'★ 建议优先恢复'
+    }
+  };
+  var lang = localStorage.getItem('reeftriage_lang') || 'en';
+  function t(k){ return (I18N[lang] && I18N[lang][k]) || I18N.en[k] || k; }
+  function applyLang(){
+    document.querySelectorAll('[data-i18n]').forEach(function(el){ el.textContent = t(el.getAttribute('data-i18n')); });
+    $('#lang-btn').text(lang === 'en' ? '中文' : 'EN');
+    updateLegend();
+  }
+  $('#lang-btn').on('click', function(){
+    lang = (lang === 'en') ? 'zh' : 'en';
+    localStorage.setItem('reeftriage_lang', lang);
+    applyLang();
+  });
+
+  // ---------- color scales ----------
+  // stops: [[value, '#hex'], ...]
+  var COLOR_SCALES = {
+    dhw:   { stops:[[0,'#2563eb'],[2,'#10b981'],[4,'#f59e0b'],[8,'#ef4444'],[12,'#991b1b']],
+             min:0, mid:4, max:'8+', title:{en:'DHW (°C-weeks)', zh:'DHW 累积热周 (°C·周)'} },
+    risk:  { stops:[[0,'#2563eb'],[25,'#10b981'],[50,'#f59e0b'],[75,'#ef4444'],[100,'#991b1b']],
+             min:0, mid:50, max:100, title:{en:'Bleaching Risk (%)', zh:'白化风险 (%)'} },
+    cost:  { stops:[[0,'#2563eb'],[1e6,'#10b981'],[2e6,'#f59e0b'],[4e6,'#ef4444'],[8e6,'#991b1b']],
+             min:'$0', mid:'$2M', max:'$4M+', title:{en:'Restoration Cost (USD/cell)', zh:'修复成本 (USD/格点)'} }
+  };
+  function hexToRgb(h){
+    h = h.replace('#','');
+    return [parseInt(h.substr(0,2),16), parseInt(h.substr(2,2),16), parseInt(h.substr(4,2),16)];
+  }
+  function colorFor(value, metric){
+    var stops = COLOR_SCALES[metric].stops;
+    if (value <= stops[0][0]) return stops[0][1];
+    for (var i=1;i<stops.length;i++){
+      if (value <= stops[i][0]){
+        var a = stops[i-1], b = stops[i];
+        var f = (value - a[0]) / (b[0] - a[0]);
+        var ca = hexToRgb(a[1]), cb = hexToRgb(b[1]);
+        var r = Math.round(ca[0] + (cb[0]-ca[0])*f);
+        var g = Math.round(ca[1] + (cb[1]-ca[1])*f);
+        var bl = Math.round(ca[2] + (cb[2]-ca[2])*f);
+        return 'rgb('+r+','+g+','+bl+')';
+      }
+    }
+    return stops[stops.length-1][1];
+  }
+
+  // ---------- map ----------
+  var map = L.map('dr-map', {zoomControl:true}).setView([4.5, 118.7], 11);
+  window.map = map;  // expose for debugging / automation
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    {attribution:'Esri World Imagery', maxZoom:18, crossOrigin:true}).addTo(map);
+
+  // ---------- heatmap layer (canvas renderer) ----------
+  var heatRenderer = L.canvas({padding:0.5});
+  var heatLayerGroup = L.layerGroup().addTo(map);
+  var heatRects = [];   // [{cell, rect}]
+  var currentMetric = 'dhw';
+
+  function updateHeatColors(){
+    heatRects.forEach(function(item){
+      var v = item.cell[currentMetric];
+      item.rect.setStyle({fillColor: colorFor(v, currentMetric), fillOpacity:0.6, stroke:false});
+    });
+  }
+  function updateLegend(){
+    var sc = COLOR_SCALES[currentMetric];
+    $('#legend-title').text(sc.title[lang] || sc.title.en);
+    var grad = sc.stops.map(function(s,i){
+      var pct = sc.stops.length===1 ? 0 : (s[0]/sc.stops[sc.stops.length-1][0])*100;
+      return s[1]+' '+(i/(sc.stops.length-1)*100)+'%';
+    }).join(',');
+    $('#legend-bar').css('background','linear-gradient(to right,'+grad+')');
+    $('#legend-min').text(sc.min);
+    $('#legend-mid').text(sc.mid);
+    $('#legend-max').text(sc.max);
+  }
+
+  function loadGrid(){
+    fetch('/api/grid-data').then(function(r){return r.json();}).then(function(data){
+      (data.cells||[]).forEach(function(cell){
+        var lat = cell.lat, lon = cell.lon;
+        var bounds = [[lat-0.025, lon-0.025], [lat+0.025, lon+0.025]];
+        var rect = L.rectangle(bounds, {
+          renderer: heatRenderer,
+          fillColor: colorFor(cell[currentMetric], currentMetric),
+          fillOpacity: 0.6,
+          stroke: false
+        }).addTo(heatLayerGroup);
+        rect.bindTooltip('DHW: '+cell.dhw+' · Risk: '+cell.risk+'% · $'+(cell.cost/1e6).toFixed(2)+'M', {sticky:true});
+        heatRects.push({cell:cell, rect:rect});
+      });
+    }).catch(function(e){ console.error('load grid failed', e); });
+  }
+  loadGrid();
+
+  // metric toggle
+  $('#metric-group .dr-btn').on('click', function(){
+    $('#metric-group .dr-btn').removeClass('primary');
+    $(this).addClass('primary');
+    currentMetric = $(this).attr('data-metric');
+    updateHeatColors();
+    updateLegend();
+  });
+
+  // draw control
+  // layer order (bottom -> top): heatmap, reef borders, segment markers, drawnItems
+  var reefBorderGroup = L.layerGroup().addTo(map);
+  var drawnItems = new L.FeatureGroup().addTo(map);
+  var drawControl = new L.Control.Draw({
+    position:'topright',
+    draw:{
+      polygon:{allowIntersection:false, showArea:true},
+      rectangle:{shapeOptions:{color:'#00d4ff', weight:2}},
+      circle:{shapeOptions:{color:'#00d4ff', weight:2}},
+      marker:false, polyline:false, circlemarker:false
+    },
+    edit:{featureGroup:drawnItems, edit:false, remove:false}
+  });
+  map.addControl(drawControl);
+
+  // ---------- reef border circles (dashed, no fill) ----------
+  // group already created above (layer ordering)
+
+  // ---------- segment markers ----------
+  var allMarkers = {};   // sid -> L.circleMarker
+  var hitMarkers = {};
+  var currentHitIds = [];
+  var CHOICE_COLORS = {invest:'#10b981', monitor:'#f59e0b', deprioritize:'#6b7280'};
+
+  function makeMarker(seg, highlighted){
+    var color = highlighted
+      ? '#00d4ff'
+      : (CHOICE_COLORS[seg.choice] || '#475569');
+    return L.circleMarker([seg.lat, seg.lon], {
+      radius: highlighted ? 9 : 5,
+      fillColor: color, color:'#0a1628', weight:1,
+      fillOpacity: highlighted ? 0.95 : 0.55
+    }).bindPopup('<b>'+seg.segment_id+'</b> · '+(seg.name||'')+'<br>score: '+seg.score+' · '+(seg.choice||''));
+  }
+
+  function loadSegments(){
+    fetch('/api/segments').then(function(r){return r.json();}).then(function(data){
+      (data.segments||[]).forEach(function(seg){
+        // reef border circle
+        L.circle([seg.lat, seg.lon], {
+          radius:1500, fill:false, color:'#00d4ff', weight:1.5,
+          opacity:0.5, dashArray:'4,4'
+        }).addTo(reefBorderGroup);
+        var m = makeMarker(seg, false).addTo(map);
+        allMarkers[seg.segment_id] = {marker:m, data:seg};
+      });
+    }).catch(function(e){ console.error('load segments failed', e); });
+  }
+  loadSegments();
+
+  // ---------- clear ----------
+  function clearAll(){
+    drawnItems.clearLayers();
+    // restore all markers to dim
+    Object.keys(allMarkers).forEach(function(sid){
+      var rec = allMarkers[sid];
+      map.removeLayer(rec.marker);
+      rec.marker = makeMarker(rec.data, false).addTo(map);
+    });
+    hitMarkers = {};
+    currentHitIds = [];
+    $('#seg-list').empty();
+    $('#st-count').text('0');
+    $('#st-avg').text('0.0');
+    $('#st-invest').text('0');
+    $('#st-monitor').text('0');
+    $('#st-cost').text('0');
+    $('#st-gridcount').text('0');
+    $('#st-avgdhw').text('0.0');
+    $('#st-maxdhw').text('0.0');
+    $('#st-highrisk').text('0.0');
+    $('#st-gridcost').text('0');
+    $('#dr-panel').removeClass('open');
+    $('#report-btn').attr('disabled', true);
+    $('#panel-report-btn').attr('disabled', true);
+  }
+  $('#clear-btn').on('click', clearAll);
+
+  // ---------- on draw created ----------
+  map.on(L.Draw.Event.CREATED, function(e){
+    // clear previous drawings & markers first
+    drawnItems.clearLayers();
+    Object.keys(allMarkers).forEach(function(sid){
+      var rec = allMarkers[sid];
+      map.removeLayer(rec.marker);
+      rec.marker = makeMarker(rec.data, false).addTo(map);
+    });
+    hitMarkers = {};
+
+    var layer = e.layer;
+    drawnItems.addLayer(layer);
+
+    var body = {};
+    var type = e.layerType;
+    if (type === 'polygon' || type === 'rectangle'){
+      var latlngs = layer.getLatLngs()[0];
+      // GeoJSON order: [lon, lat]
+      var coords = latlngs.map(function(ll){ return [ll.lng, ll.lat]; });
+      body = {type: type, coordinates:[coords]};
+    } else if (type === 'circle'){
+      var c = layer.getLatLng();
+      body = {type:'circle', center:[c.lng, c.lat], radius: layer.getRadius()};
+    } else {
+      return;
+    }
+
+    // parallel: existing intersect + new grid-stats
+    Promise.all([
+      fetch('/api/region/intersect', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)}).then(function(r){return r.json();}),
+      fetch('/api/region/grid-stats', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)}).then(function(r){return r.json();})
+    ]).then(function(results){
+      renderResult(results[0], results[1]);
+    }).catch(function(err){
+      layer.msg(t('err') + ': ' + err, {icon:2});
+    });
+  });
+
+  // ---------- render result ----------
+  function renderResult(data, gridData){
+    currentHitIds = data.intersecting_segments || [];
+    var sum = data.summary || {};
+    $('#st-count').text(data.count || 0);
+    $('#st-avg').text(sum.avg_score || 0);
+    $('#st-invest').text(sum.invest_count || 0);
+    $('#st-monitor').text(sum.monitor_count || 0);
+    $('#st-cost').text(Number(sum.total_restoration_cost || 0).toLocaleString());
+
+    // grid stats
+    var gs = (gridData && gridData.grid_stats) || {};
+    $('#st-gridcount').text(gs.grid_count || 0);
+    $('#st-avgdhw').text(gs.avg_dhw || 0);
+    $('#st-maxdhw').text(gs.max_dhw || 0);
+    $('#st-highrisk').text(gs.high_risk_pct || 0);
+    $('#st-gridcost').text(Number(gs.total_cost || 0).toLocaleString());
+
+    var list = $('#seg-list');
+    list.empty();
+    if (!currentHitIds.length){
+      list.html('<div style="color:var(--muted);font-size:12px;padding:8px 0;">'+t('noHit')+'</div>');
+    } else {
+      // sorted by score desc (backend already sorts gridData.reef_segments)
+      var segs = (gridData && gridData.reef_segments) || [];
+      var recIds = {};
+      ((gridData && gridData.recommendations) || []).forEach(function(r){ recIds[r.segment_id] = true; });
+
+      segs.forEach(function(s){
+        var sid = s.segment_id;
+        var rec = allMarkers[sid];
+        if (!rec) return;
+        // highlight
+        map.removeLayer(rec.marker);
+        rec.marker = makeMarker(rec.data, true).addTo(map);
+        hitMarkers[sid] = rec.marker;
+        var color = CHOICE_COLORS[rec.data.choice] || '#475569';
+        var isRec = !!recIds[sid];
+        list.append(
+          '<div class="dr-seg-row'+(isRec?' priority':'')+'">'+
+            '<span class="sdot" style="background:'+color+'"></span>'+
+            '<span class="sid">'+sid+'</span>'+
+            '<span class="sname">'+(isRec?'⭐ ':'')+(rec.data.name||'')+'</span>'+
+            '<span class="sscore">'+(rec.data.score||'-')+'</span>'+
+          '</div>'
+        );
+      });
+      // fit bounds to drawn layer + hits
+      var group = L.featureGroup([drawnItems].concat(Object.values(hitMarkers)));
+      try { map.fitBounds(group.getBounds().pad(0.1)); } catch(e){}
+    }
+
+    $('#dr-panel').addClass('open');
+    var dis = currentHitIds.length === 0;
+    $('#report-btn').attr('disabled', dis);
+    $('#panel-report-btn').attr('disabled', dis);
+  }
+
+  // ---------- report buttons ----------
+  function openReport(){
+    if (!currentHitIds.length) return;
+    var url = '/static/report.html?segments=' + currentHitIds.join(',');
+    window.open(url, '_blank');
+  }
+  $('#report-btn').on('click', openReport);
+  $('#panel-report-btn').on('click', openReport);
+  $('#panel-close').on('click', function(){ $('#dr-panel').removeClass('open'); });
+
+  applyLang();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Data Sources · ReefTriage Metadata</title>
+<link rel="stylesheet" href="https://cdn.staticfile.org/layui/2.9.16/css/layui.css" />
+<style>
+  :root{
+    --bg:#0a1628; --panel:rgba(13,27,42,0.85); --primary:#00d4ff;
+    --text:#e2e8f0; --muted:#94a3b8; --border:rgba(0,212,255,0.15);
+  }
+  html,body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+  *{box-sizing:border-box;}
+
+  /* 6px cyan scrollbar */
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:rgba(13,27,42,0.5);border-radius:3px;}
+  ::-webkit-scrollbar-thumb{background:rgba(0,212,255,0.4);border-radius:3px;}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(0,212,255,0.7);}
+  *{scrollbar-width:thin;scrollbar-color:rgba(0,212,255,0.4) rgba(13,27,42,0.5);}
+
+  .meta-wrap{padding:20px 24px;max-width:1400px;margin:0 auto;}
+
+  .meta-header{
+    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;
+    margin-bottom:16px;
+  }
+  .meta-header h1{
+    font-size:20px;margin:0;color:var(--primary);font-weight:700;
+    text-shadow:0 0 12px rgba(0,212,255,0.3);
+  }
+  .meta-header h1 .count{
+    font-size:12px;color:var(--muted);font-weight:400;margin-left:10px;
+    padding:2px 10px;border:1px solid var(--border);border-radius:10px;
+  }
+  .meta-header .actions{display:flex;gap:8px;align-items:center;}
+  .search-box{
+    background:rgba(0,0,0,0.25);border:1px solid var(--border);color:var(--text);
+    border-radius:6px;padding:6px 12px;font-size:12px;width:260px;outline:none;
+  }
+  .search-box:focus{border-color:var(--primary);box-shadow:0 0 0 2px rgba(0,212,255,0.15);}
+  .btn-ghost{
+    background:rgba(0,212,255,0.08);border:1px solid var(--border);color:var(--primary);
+    border-radius:6px;padding:6px 14px;cursor:pointer;font-size:12px;
+  }
+  .btn-ghost:hover{background:rgba(0,212,255,0.18);}
+
+  /* Table */
+  .layui-table-view { background: var(--panel) !important; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-top: 8px; }
+  .layui-table-box, .layui-table-header, .layui-table-body { background: transparent !important; }
+  .layui-table { background: transparent !important; color: var(--text) !important; }
+  .layui-table th {
+    background: rgba(0,212,255,0.1) !important;
+    color: #00d4ff !important;
+    font-weight: 600 !important; font-size: 12px;
+    border-bottom: 1px solid var(--border) !important;
+  }
+  .layui-table td {
+    background: transparent !important;
+    color: #e2e8f0 !important;
+    border-bottom: 1px solid rgba(148,163,184,0.08) !important; font-size: 12px;
+  }
+  .layui-table-cell { color: #e2e8f0 !important; }
+  .layui-table tbody tr:hover { background: rgba(0,212,255,0.08) !important; }
+  .layui-table tbody tr:hover td { background: transparent !important; }
+  .layui-table[lay-even] tbody tr:nth-child(even) { background: rgba(0,212,255,0.03) !important; }
+  .layui-table[lay-even] tbody tr:nth-child(even) td { background: transparent !important; }
+
+  .layer-name{font-weight:600;color:var(--text);}
+  .layer-name .zh{display:block;font-size:10px;color:var(--muted);font-weight:400;margin-top:2px;}
+  .badge{display:inline-block;padding:1px 8px;border-radius:8px;font-size:10px;
+    background:rgba(0,212,255,0.12);color:var(--primary);border:1px solid var(--border);margin:1px 2px 1px 0;}
+
+  .detail-btn{
+    background:rgba(0,212,255,0.1);border:1px solid var(--border);color:var(--primary);
+    border-radius:4px;padding:2px 10px;cursor:pointer;font-size:11px;
+  }
+  .detail-btn:hover{background:rgba(0,212,255,0.25);}
+
+  /* Detail popup content */
+  .detail-body{padding:16px 20px;color:var(--text);font-size:13px;line-height:1.6;}
+  .detail-body h3{color:var(--primary);font-size:16px;margin:0 0 4px 0;}
+  .detail-body .zh-name{color:var(--muted);font-size:12px;margin-bottom:12px;}
+  .detail-body .desc{margin-bottom:14px;color:var(--text);}
+  .detail-body .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;margin-top:10px;}
+  .detail-body .kv{font-size:12px;}
+  .detail-body .kv .k{color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;font-size:10px;margin-bottom:2px;}
+  .detail-body .kv .v{color:var(--text);word-break:break-word;}
+  .detail-body .kv .v a{color:var(--primary);text-decoration:none;}
+  .detail-body .kv .v a:hover{text-decoration:underline;}
+
+  .empty{padding:40px;text-align:center;color:var(--muted);font-size:13px;}
+</style>
+</head>
+<body>
+
+<div class="meta-wrap">
+  <div class="meta-header">
+    <h1>
+      <span data-i18n="title">📚 Data Sources</span>
+      <span class="count" id="layer-count">–</span>
+    </h1>
+    <div class="actions">
+      <input type="text" id="search" class="search-box" placeholder="Search name / source…" />
+      <button class="btn-ghost" id="lang-btn">中文</button>
+    </div>
+  </div>
+
+  <table id="meta-table" lay-filter="metaTable"></table>
+  <div class="empty" id="empty" style="display:none;"></div>
+</div>
+
+<script src="https://cdn.staticfile.org/layui/2.9.16/layui.js"></script>
+<script>
+(function(){
+  'use strict';
+  var I18N = {
+    en: {
+      title: "📚 Data Sources",
+      search_ph: "Search name / source…",
+      no_result: "No matching data layer",
+      load_err: "Failed to load /api/metadata",
+      col_name: "Layer", col_source: "Source", col_time: "Time Range",
+      col_res: "Resolution", col_vars: "Variables", col_used: "Used For", col_action: "Details",
+      d_description: "Description", d_uncertainty: "Uncertainty",
+      d_citation: "Citation", d_license: "License", d_url: "Source URL",
+      d_spatial: "Spatial Resolution", d_temporal: "Temporal Resolution",
+      d_timerange: "Time Range", d_variables: "Variables", d_usedfor: "Used For"
+    },
+    zh: {
+      title: "📚 数据来源",
+      search_ph: "搜索名称 / 来源…",
+      no_result: "未找到匹配的数据层",
+      load_err: "加载 /api/metadata 失败",
+      col_name: "数据层", col_source: "来源", col_time: "时间范围",
+      col_res: "分辨率", col_vars: "变量", col_used: "用途", col_action: "详情",
+      d_description: "描述", d_uncertainty: "不确定性",
+      d_citation: "引用文献", d_license: "许可证", d_url: "来源链接",
+      d_spatial: "空间分辨率", d_temporal: "时间分辨率",
+      d_timerange: "时间范围", d_variables: "变量", d_usedfor: "用途"
+    }
+  };
+  var lang = 'en';
+  try { var s = localStorage.getItem('reeftriage_lang'); if (s==='en'||s==='zh') lang = s; } catch(e){}
+  function t(k){ return (I18N[lang] && I18N[lang][k]) || I18N.en[k] || k; }
+
+  var allLayers = [];
+
+  layui.use(['table','layer'], function(){
+    var table = layui.table;
+    var layer = layui.layer;
+    var $ = layui.$;
+
+    function rowName(d){
+      var zh = (lang==='zh' && d.name_zh) ? d.name_zh : '';
+      return '<div class="layer-name">'+d.name+(zh?'<span class="zh">'+zh+'</span>':'')+'</div>';
+    }
+    function rowVars(d){
+      return (d.variables||[]).map(function(v){return '<span class="badge">'+v+'</span>';}).join('');
+    }
+    function rowUsed(d){
+      return (d.used_for||[]).slice(0,4).map(function(v){return '<span class="badge">'+v+'</span>';}).join('') +
+        ((d.used_for||[]).length>4?'<span class="badge">+</span>':'');
+    }
+    function detailBtn(){
+      return '<button class="detail-btn" lay-event="detail">'+t('col_action')+'</button>';
+    }
+
+    function renderTable(data){
+      table.render({
+        elem: '#meta-table',
+        data: data,
+        page: false,
+        cols: [[
+          {field:'name', title:t('col_name'), minWidth:230, templet: rowName},
+          {field:'source', title:t('col_source'), minWidth:210},
+          {field:'time_range', title:t('col_time'), width:150},
+          {field:'spatial_resolution', title:t('col_res'), width:110},
+          {field:'variables', title:t('col_vars'), minWidth:180, templet: rowVars},
+          {field:'used_for', title:t('col_used'), minWidth:160, templet: rowUsed},
+          {field:'op', title:t('col_action'), width:80, align:'center', templet: detailBtn}
+        ]],
+        done: function(res){
+          $('#layer-count').text(res.count + ' layers / 数据层');
+          $('#empty').css('display', res.count ? 'none' : 'block');
+        }
+      });
+    }
+
+    // Detail popup
+    table.on('tool(metaTable)', function(obj){
+      if (obj.event !== 'detail') return;
+      var d = obj.data;
+      var desc = (lang==='zh' && d.description_zh) ? d.description_zh : d.description;
+      var html = '<div class="detail-body">'+
+        '<h3>'+d.name+'</h3>'+
+        '<div class="zh-name">'+(d.name_zh||'')+'</div>'+
+        '<div class="desc">'+(desc||'')+'</div>'+
+        '<div class="grid">'+
+          kv(t('d_spatial'), d.spatial_resolution)+
+          kv(t('d_temporal'), d.temporal_resolution)+
+          kv(t('d_timerange'), d.time_range)+
+          kv(t('d_uncertainty'), d.uncertainty)+
+          kv(t('d_variables'), (d.variables||[]).join(', '))+
+          kv(t('d_usedfor'), (d.used_for||[]).join(', '))+
+          kv(t('d_license'), d.license)+
+          kv(t('d_url'), d.source_url ? '<a href="'+d.source_url+'" target="_blank" rel="noopener">'+d.source_url+'</a>' : '–')+
+        '</div>'+
+        '<div class="kv" style="margin-top:12px;"><div class="k">'+t('d_citation')+'</div><div class="v" style="font-style:italic;">'+(d.citation||'–')+'</div></div>'+
+      '</div>';
+      layer.open({
+        type: 1,
+        title: (lang==='zh'?'数据层详情':'Layer Detail'),
+        area: ['640px','auto'],
+        maxHeight: 600,
+        content: html,
+        skin: 'layui-layer-admin',
+        success: function(layero){
+          layero.find('.layui-layer-content').css({background:'#0d1b2a',color:'#e2e8f0'});
+        }
+      });
+    });
+
+    function kv(k,v){
+      return '<div class="kv"><div class="k">'+k+'</div><div class="v">'+(v||'–')+'</div></div>';
+    }
+
+    // Load data
+    fetch('/api/metadata').then(function(r){return r.json();}).then(function(d){
+      allLayers = d.layers || [];
+      renderTable(allLayers);
+    }).catch(function(e){
+      $('#layer-count').text('error');
+      $('#empty').css('display','block').textContent = t('load_err') + ': ' + e.message;
+    });
+
+    // Search
+    $('#search').on('input', function(){
+      var q = $(this).val().toLowerCase().trim();
+      var filtered = !q ? allLayers : allLayers.filter(function(l){
+        return (l.name||'').toLowerCase().indexOf(q)>=0
+            || (l.name_zh||'').toLowerCase().indexOf(q)>=0
+            || (l.source||'').toLowerCase().indexOf(q)>=0
+            || (l.id||'').toLowerCase().indexOf(q)>=0;
+      });
+      renderTable(filtered);
+    });
+
+    // Language toggle
+    $('#lang-btn').on('click', function(){
+      lang = (lang==='en')?'zh':'en';
+      try{ localStorage.setItem('reeftriage_lang', lang); }catch(e){}
+      $(this).text(lang==='en'?'中文':'EN');
+      document.querySelector('[data-i18n]').textContent = t('title');
+      $('#search').attr('placeholder', t('search_ph'));
+      renderTable(allLayers);
+    });
+    $('#lang-btn').text(lang==='en'?'中文':'EN');
+    document.querySelector('[data-i18n]').textContent = t('title');
+    $('#search').attr('placeholder', t('search_ph'));
+  });
+})();
+</script>
+</body>
+</html>

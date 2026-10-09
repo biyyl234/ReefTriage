@@ -1,0 +1,95 @@
+{
+  "segment_id": "R03",
+  "segment_name": "Sipadan Turtle Cave",
+  "group": "Sipadan",
+  "rhi_score": 66.8,
+  "rhi_components": {
+    "coral_cover": 62.2,
+    "macroalgae": 12.3,
+    "fish_diversity": 78.9,
+    "structural_complexity": 78.5,
+    "water_quality": 78.9,
+    "bleaching_resistance": 55.6,
+    "recovery_trajectory": 57.5,
+    "anthropogenic_impact": 87.0
+  },
+  "rhi_weights": {
+    "coral_cover": 0.22,
+    "fish_diversity": 0.15,
+    "structural_complexity": 0.15,
+    "water_quality": 0.12,
+    "bleaching_resistance": 0.12,
+    "recovery_trajectory": 0.12,
+    "anthropogenic_impact": 0.08,
+    "macroalgae": -0.04
+  },
+  "cover_trend": [
+    {
+      "year": 2018,
+      "cover": 64.3
+    },
+    {
+      "year": 2019,
+      "cover": 63.0
+    },
+    {
+      "year": 2020,
+      "cover": 59.2
+    },
+    {
+      "year": 2021,
+      "cover": 60.5
+    },
+    {
+      "year": 2022,
+      "cover": 61.7
+    },
+    {
+      "year": 2023,
+      "cover": 63.0
+    },
+    {
+      "year": 2024,
+      "cover": 45.4
+    },
+    {
+      "year": 2025,
+      "cover": 50.4
+    }
+  ],
+  "cover_trend_note": "Hard coral cover %; literature-anchored, shows 2024 bleaching dip and partial 2025 recovery.",
+  "bleaching_events": [
+    {
+      "year": 2010,
+      "severity": "moderate",
+      "dhw": 5.2,
+      "note": "2nd global mass bleaching event; Malaysia DHW ~5.2 (Tun et al. 2013)"
+    },
+    {
+      "year": 2016,
+      "severity": "severe",
+      "dhw": 10.5,
+      "note": "3rd global bleaching event (2014-2017 El Nino peak)"
+    },
+    {
+      "year": 2024,
+      "severity": "severe",
+      "dhw": 11.3,
+      "note": "4th global bleaching event; Apr-Jun 2024, ~90% of surveyed Malaysian sites affected (Reef Check Malaysia 2026)"
+    }
+  ],
+  "images": {
+    "healthy": "img/coral/healthy.jpg",
+    "mild": "img/coral/mild.jpg",
+    "moderate": "img/coral/moderate.jpg",
+    "severe": "img/coral/severe.jpg"
+  },
+  "image_legend": {
+    "healthy": "Vibrant zooxanthellate coral (Raja Ampat-style reference)",
+    "mild": "Partial bleaching: central colony white, surrounding tissue still pigmented",
+    "moderate": "Extensive pale/bleached field, some pigment retained",
+    "severe": "Fully bleached/white skeleton, high mortality risk"
+  },
+  "data_source": "literature_anchored_estimate",
+  "provenance_note": "RHI components and cover trend are literature-anchored estimates for the Semporna archipelago (NOT in-situ survey data). Bleaching events and DHW values cite Reef Check Malaysia (2026), NOAA CRW, and published Malaysia bleaching literature. Coral images are reference illustrations; see img/coral/SOURCES.md for attribution."
+}

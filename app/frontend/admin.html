@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ReefTriage Admin · 综合管理系统</title>
+<link rel="stylesheet" href="https://cdn.staticfile.org/layui/2.9.16/css/layui.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intro.js@7.2.0/minified/introjs.min.css" />
+<style>
+  :root{
+    --bg:#0a1628; --panel:rgba(13,27,42,0.85); --primary:#00d4ff;
+    --invest:#10b981; --monitor:#f59e0b; --deprior:#6b7280;
+    --text:#e2e8f0; --muted:#94a3b8; --border:rgba(0,212,255,0.15);
+  }
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+  *{box-sizing:border-box;}
+
+  /* ===== Layui dark overrides ===== */
+  .layui-layout-admin .layui-header{background:var(--panel);border-bottom:1px solid var(--border);
+    backdrop-filter:blur(12px);height:48px;line-height:48px;box-shadow:0 2px 12px rgba(0,0,0,.4);}
+  .layui-layout-admin .layui-side{background:var(--panel);border-right:1px solid var(--border);
+    backdrop-filter:blur(12px);}
+  .layui-side .layui-nav{background:transparent;}
+  .layui-side .layui-nav-tree .layui-nav-item a{color:var(--text);height:46px;line-height:46px;}
+  .layui-side .layui-nav-tree .layui-nav-item a:hover{background:rgba(0,212,255,.08);color:var(--primary);}
+  .layui-side .layui-nav-tree .layui-nav-item.layui-this a{
+    background:linear-gradient(90deg,rgba(0,212,255,.22),rgba(0,212,255,.02));
+    color:var(--primary);border-left:3px solid var(--primary);}
+  .layui-nav-bar{background:var(--primary)!important;}
+  .layui-layout-admin .layui-body{background:var(--bg);left:200px;}
+
+  /* ===== Header ===== */
+  .brand{display:flex;align-items:center;height:48px;padding:0 16px;float:left;}
+  .brand .logo{font-size:22px;margin-right:10px;}
+  .brand h1{font-size:16px;margin:0;color:var(--primary);font-weight:600;line-height:1.2;}
+  .brand p{font-size:11px;margin:0;color:var(--muted);line-height:1.2;}
+  .page-title{position:absolute;left:50%;transform:translateX(-50%);font-size:14px;
+    color:var(--text);letter-spacing:1px;}
+  .top-right{float:right;height:48px;display:flex;align-items:center;gap:12px;padding-right:16px;}
+
+  /* service status dots */
+  .svc-badge{display:flex;align-items:center;gap:6px;background:rgba(13,27,42,.6);
+    border:1px solid var(--border);border-radius:14px;padding:3px 10px;font-size:11px;color:var(--muted);}
+  .svc-dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+  .svc-dot.on{background:var(--invest);box-shadow:0 0 6px var(--invest);}
+  .svc-dot.off{background:#475569;}
+
+  .icon-btn{background:rgba(0,212,255,.1);border:1px solid var(--border);color:var(--primary);
+    border-radius:4px;padding:4px 10px;cursor:pointer;font-size:12px;}
+  .icon-btn:hover{background:rgba(0,212,255,.2);}
+
+  /* ===== Sidebar ===== */
+  .layui-side{width:200px;transition:width .25s;overflow:hidden;}
+  .layui-side .layui-side-scroll{overflow-y:auto;overflow-x:hidden;}
+  .side-logo{padding:14px 16px;color:var(--primary);font-size:13px;border-bottom:1px solid var(--border);
+    letter-spacing:1px;}
+  .layui-nav .nav-icon{margin-right:8px;font-size:15px;}
+  .collapse-btn{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:10;
+    background:rgba(0,212,255,.1);border:1px solid var(--border);color:var(--primary);
+    width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:14px;}
+
+  /* collapsed state */
+  body.side-collapsed .layui-side{width:60px;}
+  body.side-collapsed .layui-side .layui-side-scroll{width:60px;}
+  body.side-collapsed .layui-side .nav-text,
+  body.side-collapsed .layui-side .side-logo span{display:none;}
+  body.side-collapsed .layui-side .layui-nav{width:60px;}
+  body.side-collapsed .layui-side .layui-nav-item a{text-align:center;padding:0;width:60px;}
+  body.side-collapsed .layui-side .nav-icon{margin-right:0;font-size:18px;}
+  body.side-collapsed .layui-body{left:60px;}
+
+  /* ===== iframe body ===== */
+  .admin-body{position:absolute;top:48px;left:200px;right:0;bottom:0;transition:left .25s;}
+  body.side-collapsed .admin-body{left:60px;}
+  #content-frame{width:100%;height:100%;border:0;background:var(--bg);}
+
+  /* ===== Custom Scrollbar (dark tech, 6px cyan) ===== */
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:rgba(13,27,42,0.5);border-radius:3px;}
+  ::-webkit-scrollbar-thumb{background:rgba(0,212,255,0.4);border-radius:3px;}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(0,212,255,0.7);}
+  ::-webkit-scrollbar-corner{background:rgba(13,27,42,0.5);}
+  *{scrollbar-width:thin;scrollbar-color:rgba(0,212,255,0.4) rgba(13,27,42,0.5);}
+  .layui-side-scroll::-webkit-scrollbar{width:4px;}
+
+  @media (max-width:768px){
+    .layui-side{width:60px!important;}
+    .layui-body,.admin-body{left:60px!important;}
+    .nav-text,.side-logo span{display:none;}
+    .layui-nav-item a{text-align:center;padding:0;}
+    .nav-icon{margin-right:0!important;font-size:18px;}
+    .page-title{display:none;}
+    .sidebar-resizer{display:none!important;}
+  }
+
+  /* ===== Sidebar Resizer ===== */
+  .sidebar-resizer{position:absolute;top:0;right:0;width:4px;height:100%;cursor:col-resize;
+    z-index:20;background:transparent;transition:background .15s;}
+  .sidebar-resizer:hover{background:rgba(0,212,255,0.3);}
+  .sidebar-resizer.dragging{background:rgba(0,212,255,0.5);}
+  body.side-collapsed .sidebar-resizer{display:none;}
+  body.sidebar-resizing .layui-side,
+  body.sidebar-resizing .layui-body,
+  body.sidebar-resizing .admin-body{transition:none!important;}
+  body.sidebar-resizing{user-select:none!important;}
+
+  /* ===== Intro.js dark theme overrides ===== */
+  .introjs-tooltip{background:#0d1b2a!important;border:1px solid rgba(0,212,255,0.3)!important;
+    color:#e2e8f0!important;border-radius:8px!important;box-shadow:0 4px 24px rgba(0,0,0,.5)!important;}
+  .introjs-tooltip-title{color:#00d4ff!important;font-size:15px!important;font-weight:600!important;}
+  .introjs-tooltiptext{color:#e2e8f0!important;font-size:13px!important;line-height:1.6!important;}
+  .introjs-tooltipbuttons{border-top:1px solid rgba(0,212,255,0.15)!important;}
+  .introjs-button{background:rgba(0,212,255,0.1)!important;border:1px solid rgba(0,212,255,0.3)!important;
+    color:#00d4ff!important;border-radius:4px!important;text-shadow:none!important;
+    box-shadow:none!important;padding:5px 14px!important;font-size:12px!important;}
+  .introjs-button:hover{background:rgba(0,212,255,0.2)!important;border-color:rgba(0,212,255,0.5)!important;}
+  .introjs-button::after{display:none!important;}
+  .introjs-skipbutton{color:#94a3b8!important;font-size:12px!important;}
+  .introjs-skipbutton:hover{color:#e2e8f0!important;}
+  .introjs-helperLayer{background:transparent!important;box-shadow:0 0 0 9999px rgba(0,0,0,0.72),inset 0 0 0 3px #00d4ff,0 0 20px 4px rgba(0,212,255,0.5)!important;border-radius:6px!important;animation:introPulse 1.8s ease-in-out infinite!important;}
+  .introjs-overlay{opacity:0!important;display:none!important;}
+  .introjs-showElement{z-index:9999999!important;position:relative!important;}
+  .introjs-tooltipReferenceLayer{z-index:99999999!important;}
+  .introjs-helperNumberLayer{background:#00d4ff!important;color:#0a1628!important;box-shadow:0 0 10px rgba(0,212,255,0.7)!important;}
+  @keyframes introPulse{0%{box-shadow:0 0 0 9999px rgba(0,0,0,0.72),inset 0 0 0 3px #00d4ff,0 0 12px 2px rgba(0,212,255,0.35);}50%{box-shadow:0 0 0 9999px rgba(0,0,0,0.72),inset 0 0 0 5px #4de8ff,0 0 30px 8px rgba(0,212,255,0.65);}100%{box-shadow:0 0 0 9999px rgba(0,0,0,0.72),inset 0 0 0 3px #00d4ff,0 0 12px 2px rgba(0,212,255,0.35);}}
+  .introjs-bullets ul li a{background:rgba(0,212,255,0.2)!important;}
+  .introjs-bullets ul li a.active{background:#00d4ff!important;}
+
+  /* ===== Login Overlay ===== */
+  #login-overlay{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(ellipse at 30% 20%,rgba(0,212,255,0.1),transparent 50%),
+               radial-gradient(ellipse at 70% 80%,rgba(16,185,129,0.08),transparent 50%),
+               var(--bg);}
+  #login-overlay.hidden{display:none;}
+  .login-card{width:380px;max-width:90vw;background:var(--panel);border:1px solid var(--border);
+    border-radius:16px;padding:36px 32px;backdrop-filter:blur(20px);
+    box-shadow:0 20px 60px rgba(0,0,0,.5),0 0 40px rgba(0,212,255,0.08);
+    animation:loginFadeIn .5s ease-out;}
+  @keyframes loginFadeIn{from{opacity:0;transform:translateY(20px) scale(.97);}to{opacity:1;transform:none;}}
+  .login-logo{text-align:center;margin-bottom:8px;}
+  .login-logo .icon{font-size:48px;display:block;margin-bottom:8px;
+    filter:drop-shadow(0 0 12px rgba(0,212,255,0.4));}
+  .login-logo h2{margin:0;font-size:22px;color:var(--primary);font-weight:700;letter-spacing:1px;}
+  .login-logo p{margin:4px 0 0;font-size:12px;color:var(--muted);letter-spacing:.5px;}
+  .login-form{margin-top:28px;}
+  .login-field{margin-bottom:18px;}
+  .login-field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;letter-spacing:.5px;}
+  .login-field input{width:100%;padding:11px 14px;background:rgba(10,22,40,.6);
+    border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;
+    outline:none;transition:border-color .2s,box-shadow .2s;}
+  .login-field input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(0,212,255,0.12);}
+  .login-field input::placeholder{color:#475569;}
+  .login-btn{width:100%;padding:12px;background:linear-gradient(135deg,#00d4ff,#0099cc);
+    border:none;border-radius:8px;color:#0a1628;font-size:15px;font-weight:700;letter-spacing:1px;
+    cursor:pointer;transition:transform .15s,box-shadow .2s;margin-top:6px;}
+  .login-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,212,255,0.35);}
+  .login-btn:active{transform:translateY(0);}
+  .login-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+  .login-error{color:#f87171;font-size:12px;margin-top:10px;text-align:center;min-height:16px;}
+  .login-error.shake{animation:loginShake .3s ease-in-out;}
+  @keyframes loginShake{0%,100%{transform:translateX(0);}25%{transform:translateX(-4px);}75%{transform:translateX(4px);}}
+  .login-hint{margin-top:20px;padding:10px 14px;background:rgba(0,212,255,0.06);
+    border:1px solid rgba(0,212,255,0.12);border-radius:8px;font-size:11px;color:var(--muted);
+    line-height:1.8;}
+  .login-hint code{background:rgba(0,212,255,0.1);color:var(--primary);padding:1px 6px;border-radius:3px;
+    font-family:monospace;font-size:11px;}
+  .logout-btn{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);color:#f87171;
+    border-radius:4px;padding:4px 10px;cursor:pointer;font-size:12px;}
+  .logout-btn:hover{background:rgba(248,113,113,.2);}
+</style>
+</head>
+<body class="layui-layout-body">
+
+<!-- ===== Login Overlay ===== -->
+<div id="login-overlay">
+  <div class="login-card">
+    <div class="login-logo">
+      <span class="icon">🪸</span>
+      <h2>ReefTriage</h2>
+      <p>Semporna Reef Restoration · 综合管理系统</p>
+    </div>
+    <form class="login-form" id="login-form" onsubmit="return false;">
+      <div class="login-field">
+        <label for="login-user">用户名 / Username</label>
+        <input type="text" id="login-user" placeholder="admin" autocomplete="username" />
+      </div>
+      <div class="login-field">
+        <label for="login-pass">密码 / Password</label>
+        <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+      <button type="submit" class="login-btn" id="login-submit">登 录 / Sign In</button>
+      <div class="login-error" id="login-error"></div>
+    </form>
+    <div class="login-hint">
+      <strong>Demo 账号 / Demo Account</strong><br/>
+      用户名：<code>admin</code>　密码：<code>coral2026</code><br/>
+      <span style="opacity:.7;">演示用账号，数据均为公开数据 / Demo account with public data only</span>
+    </div>
+  </div>
+</div>
+
+<div class="layui-layout layui-layout-admin">
+
+  <!-- Header -->
+  <div class="layui-header">
+    <div class="brand">
+      <span class="logo">🪸</span>
+      <div>
+        <h1>ReefTriage <span style="color:var(--muted);font-weight:400;font-size:12px;">Admin</span></h1>
+        <p>Semporna Reef Restoration · 综合管理系统</p>
+      </div>
+    </div>
+    <div class="page-title" id="page-title">🗺️ 宏观决策地图</div>
+    <div class="top-right">
+      <div class="svc-badge" id="svc-badge" title="Services status">
+        <span class="svc-dot on" id="dot-reeftriage"></span>RT
+        <span class="svc-dot off" id="dot-laya"></span>LYA
+        <span class="svc-dot off" id="dot-postgres"></span>PG
+        <span class="svc-dot off" id="dot-nocobase"></span>NB
+      </div>
+      <button class="icon-btn" id="lang-btn">中文</button>
+      <button class="icon-btn" id="tour-btn" title="Help / 帮助">❓ Help</button>
+      <button class="icon-btn" id="open-new-btn" title="Open in new tab">↗</button>
+      <button class="logout-btn" id="logout-btn" title="Logout / 退出登录">⏻</button>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="layui-side">
+    <div class="side-logo">🪸 <span>ReefTriage</span></div>
+    <div class="layui-side-scroll">
+      <ul class="layui-nav layui-nav-tree" id="side-nav" lay-filter="sideNav">
+        <li class="layui-nav-item layui-this" data-src="/static/index.html" data-title="🗺️ 宏观决策地图 / Macro Map">
+          <a href="javascript:;"><span class="nav-icon">🗺️</span><span class="nav-text" data-i18n="nav_map">宏观决策地图</span></a>
+        </li>
+        <li class="layui-nav-item" data-src="/static/filter.html" data-title="🎯 空间筛选 / Spatial Filter">
+          <a href="javascript:;"><span class="nav-icon">🎯</span><span class="nav-text" data-i18n="nav_filter">空间筛选</span></a>
+        </li>
+        <li class="layui-nav-item" data-src="/static/draw.html" data-title="✏️ 区域绘制 / Draw & Report">
+          <a href="javascript:;"><span class="nav-icon">✏️</span><span class="nav-text" data-i18n="nav_draw">区域绘制</span></a>
+        </li>
+        <li class="layui-nav-item" data-src="/static/micro.html?segment=R01" data-title="🔬 Reef Lab 微观实验室 / Micro Lab">
+          <a href="javascript:;"><span class="nav-icon">🔬</span><span class="nav-text" data-i18n="nav_micro">微观实验室</span></a>
+        </li>
+        <li class="layui-nav-item" data-src="/static/report.html" data-title="📄 报告中心 / Report Center">
+          <a href="javascript:;"><span class="nav-icon">📄</span><span class="nav-text" data-i18n="nav_report">报告中心</span></a>
+        </li>
+        <li class="layui-nav-item" data-src="/static/services.html" data-title="📊 服务监控 / Services">
+          <a href="javascript:;"><span class="nav-icon">📊</span><span class="nav-text" data-i18n="nav_services">服务监控</span></a>
+        </li>
+        <li class="layui-nav-item" data-src="/static/api.html" data-title="🔧 API 管理 / API Console">
+          <a href="javascript:;"><span class="nav-icon">🔧</span><span class="nav-text" data-i18n="nav_api">API 管理</span></a>
+        </li>
+        <li class="layui-nav-item" data-src="/static/model.html" data-title="🧮 模型面板 / Model Panel">
+          <a href="javascript:;"><span class="nav-icon">🧮</span><span class="nav-text" data-i18n="nav_model">模型面板</span></a>
+        </li>
+        <li class="layui-nav-item" data-src="/static/connectivity.html" data-title="🌐 连通性网络 / Connectivity">
+          <a href="javascript:;"><span class="nav-icon">🌐</span><span class="nav-text" data-i18n="nav_conn">连通性网络</span></a>
+        </li>
+        <li class="layui-nav-item" data-src="/static/metadata.html" data-title="📚 数据来源 / Data Sources">
+          <a href="javascript:;"><span class="nav-icon">📚</span><span class="nav-text" data-i18n="nav_metadata">数据来源</span></a>
+        </li>
+        <li class="layui-nav-item" data-src="/static/feedback.html" data-title="💬 用户反馈 / Feedback">
+          <a href="javascript:;"><span class="nav-icon">💬</span><span class="nav-text" data-i18n="nav_feedback">用户反馈</span></a>
+        </li>
+        <li class="layui-nav-item" data-src="/static/settings.html" data-title="⚙️ 设置 / Settings">
+          <a href="javascript:;"><span class="nav-icon">⚙️</span><span class="nav-text" data-i18n="nav_settings">设置</span></a>
+        </li>
+      </ul>
+    </div>
+    <button class="collapse-btn" id="collapse-btn" title="collapse">⟨</button>
+    <div class="sidebar-resizer" id="sidebar-resizer"></div>
+  </div>
+
+  <!-- Body iframe -->
+  <div class="admin-body">
+    <iframe id="content-frame" src="/static/index.html"></iframe>
+  </div>
+
+</div>
+
+<script src="https://cdn.staticfile.org/layui/2.9.16/layui.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/intro.js@7.2.0/minified/intro.min.js"></script>
+<script>
+layui.use(['element'], function(){
+  var element = layui.element;
+  var $ = layui.$;
+
+  // ---- Login / Auth ----
+  var DEMO_USER = 'admin';
+  var DEMO_PASS = 'coral2026';
+  var AUTH_KEY = 'reeftriage_auth';
+
+  function isLoggedIn(){
+    try{ return localStorage.getItem(AUTH_KEY) === 'true'; }catch(e){ return false; }
+  }
+  function showLogin(){
+    $('#login-overlay').removeClass('hidden');
+    setTimeout(function(){ $('#login-user').focus(); }, 100);
+  }
+  function hideLogin(){
+    $('#login-overlay').addClass('hidden');
+  }
+  function doLogin(){
+    var u = $('#login-user').val().trim();
+    var p = $('#login-pass').val();
+    var $err = $('#login-error');
+    if(u === DEMO_USER && p === DEMO_PASS){
+      try{ localStorage.setItem(AUTH_KEY, 'true'); }catch(e){}
+      $err.text('');
+      hideLogin();
+    } else {
+      $err.text('用户名或密码错误 / Invalid username or password');
+      $err.removeClass('shake');
+      void $err[0].offsetWidth;
+      $err.addClass('shake');
+      $('#login-pass').val('').focus();
+    }
+  }
+  function doLogout(){
+    try{ localStorage.removeItem(AUTH_KEY); }catch(e){}
+    $('#login-user').val('');
+    $('#login-pass').val('');
+    $('#login-error').text('');
+    showLogin();
+  }
+  $('#login-submit').on('click', doLogin);
+  $('#login-pass').on('keypress', function(e){ if(e.which === 13) doLogin(); });
+  $('#login-user').on('keypress', function(e){ if(e.which === 13) $('#login-pass').focus(); });
+  $('#logout-btn').on('click', doLogout);
+
+  // gate: show login if not authenticated
+  if(!isLoggedIn()){
+    showLogin();
+  } else {
+    hideLogin();
+  }
+
+  // ---- i18n ----
+  var I18N = {
+    en: {nav_map:'Macro Map', nav_filter:'Spatial Filter', nav_draw:'Draw & Report', nav_micro:'Reef Lab', nav_services:'Services',
+         nav_api:'API Console', nav_model:'Model Panel', nav_conn:'Connectivity', nav_settings:'Settings',
+         nav_report:'Report Center', nav_metadata:'Data Sources', nav_feedback:'Feedback'},
+    zh: {nav_map:'宏观决策地图', nav_filter:'空间筛选', nav_draw:'区域绘制', nav_micro:'微观实验室', nav_services:'服务监控',
+         nav_api:'API 管理', nav_model:'模型面板', nav_conn:'连通性网络', nav_settings:'设置',
+         nav_report:'报告中心', nav_metadata:'数据来源', nav_feedback:'用户反馈'}
+  };
+  var lang = localStorage.getItem('reeftriage_lang') || 'en';
+  function applyLang(){
+    document.querySelectorAll('[data-i18n]').forEach(function(el){
+      var k = el.getAttribute('data-i18n');
+      if(I18N[lang][k]) el.textContent = I18N[lang][k];
+    });
+    $('#lang-btn').text(lang === 'en' ? '中文' : 'EN');
+    $('#tour-btn').text(lang === 'en' ? '❓ Help' : '❓ 帮助');
+    // reload iframe to propagate
+    var f = document.getElementById('content-frame');
+    if(f) f.contentWindow.location.reload();
+  }
+  $('#lang-btn').on('click', function(){
+    lang = (lang === 'en') ? 'zh' : 'en';
+    localStorage.setItem('reeftriage_lang', lang);
+    applyLang();
+  });
+
+  // ---- nav click ----
+  $('#side-nav').on('click', 'li', function(){
+    var src = $(this).attr('data-src');
+    var title = $(this).attr('data-title');
+    $('#content-frame').attr('src', src);
+    $('#page-title').text(title);
+    $('#side-nav li').removeClass('layui-this');
+    $(this).addClass('layui-this');
+  });
+
+  // ---- sidebar width helpers ----
+  var DEFAULT_SIDEBAR_W = 200;
+  var MIN_SIDEBAR_W = 180, MAX_SIDEBAR_W = 400;
+  function getSavedSidebarW(){
+    var w = parseInt(localStorage.getItem('reeftriage_sidebar_width'), 10);
+    if(isNaN(w) || w < MIN_SIDEBAR_W || w > MAX_SIDEBAR_W) return DEFAULT_SIDEBAR_W;
+    return w;
+  }
+  function setStyle(sel, prop, val){
+    var el = document.querySelector(sel);
+    if(el) el.style[prop] = val;
+  }
+  function applySidebarWidth(w){
+    setStyle('.layui-side', 'width', w + 'px');
+    setStyle('.layui-body', 'left', w + 'px');
+    setStyle('.admin-body', 'left', w + 'px');
+  }
+  function clearSidebarWidth(){
+    setStyle('.layui-side', 'width', '');
+    setStyle('.layui-body', 'left', '');
+    setStyle('.admin-body', 'left', '');
+  }
+  // apply saved width on load (only when not collapsed)
+  if(!document.body.classList.contains('side-collapsed')){
+    applySidebarWidth(getSavedSidebarW());
+  }
+
+  // ---- collapse ----
+  $('#collapse-btn').on('click', function(){
+    var willCollapse = !document.body.classList.contains('side-collapsed');
+    document.body.classList.toggle('side-collapsed');
+    $(this).text(document.body.classList.contains('side-collapsed') ? '»' : '⟨');
+    if(willCollapse){
+      // drive geometry inline (same approach as the drag resizer) for a reliable 60px state
+      setStyle('.layui-side','width','60px');
+      setStyle('.layui-body','left','60px');
+      setStyle('.admin-body','left','60px');
+    } else {
+      // restore saved width
+      applySidebarWidth(getSavedSidebarW());
+    }
+    setTimeout(function(){ try{ $('#content-frame')[0].contentWindow.dispatchEvent(new Event('resize')); }catch(e){} }, 300);
+  });
+
+  // ---- sidebar drag resizer ----
+  (function initResizer(){
+    var resizer = document.getElementById('sidebar-resizer');
+    if(!resizer) return;
+    var startX = 0, startW = 0, dragging = false;
+    function onDown(e){
+      if(document.body.classList.contains('side-collapsed')) return;
+      if(window.innerWidth <= 768) return;
+      dragging = true;
+      startX = e.clientX;
+      startW = document.querySelector('.layui-side').getBoundingClientRect().width;
+      resizer.classList.add('dragging');
+      document.body.classList.add('sidebar-resizing');
+      e.preventDefault();
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    }
+    function onMove(e){
+      if(!dragging) return;
+      var nw = startW + (e.clientX - startX);
+      if(nw < MIN_SIDEBAR_W) nw = MIN_SIDEBAR_W;
+      if(nw > MAX_SIDEBAR_W) nw = MAX_SIDEBAR_W;
+      applySidebarWidth(nw);
+      try{ document.getElementById('content-frame').contentWindow.dispatchEvent(new Event('resize')); }catch(err){}
+    }
+    function onUp(){
+      if(!dragging) return;
+      dragging = false;
+      resizer.classList.remove('dragging');
+      document.body.classList.remove('sidebar-resizing');
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      var w = parseInt(document.querySelector('.layui-side').style.width, 10);
+      if(!isNaN(w)) localStorage.setItem('reeftriage_sidebar_width', w);
+    }
+    resizer.addEventListener('mousedown', onDown);
+  })();
+
+  // ---- open in new tab ----
+  $('#open-new-btn').on('click', function(){
+    var src = $('#content-frame').attr('src');
+    window.open(src, '_blank');
+  });
+
+  // ---- services status ----
+  function refreshStatus(){
+    fetch('/api/services-status').then(function(r){return r.json();}).then(function(data){
+      var s = data.services || {};
+      ['reeftriage','laya','postgres','nocobase'].forEach(function(k){
+        var dot = document.getElementById('dot-' + k);
+        if(!dot) return;
+        var up = s[k] && s[k].status === 'ok';
+        dot.className = 'svc-dot ' + (up ? 'on' : 'off');
+      });
+    }).catch(function(){});
+  }
+  refreshStatus();
+  setInterval(refreshStatus, 30000);
+
+  // ===== Product Tour (Intro.js) =====
+  var TOUR_I18N = {
+    en: {
+      welcomeTitle: 'Welcome to ReefTriage Admin',
+      welcomeIntro: 'This is the ReefTriage management console for Semporna reef restoration prioritization. Let\'s take a quick tour of the key features.<br><br>Click "Next" to continue, or "Skip" to exit.',
+      navTitle: 'Sidebar Navigation',
+      navIntro: 'This sidebar contains 12 functional pages: Macro Map, Spatial Filter, Draw & Report, Reef Lab, Report Center, Services, API Console, Model Panel, Connectivity, Data Sources, Feedback, and Settings. Click any item to load it in the main area.',
+      langTitle: 'Language Switch',
+      langIntro: 'Click this button to toggle between Chinese and English. The interface and all sub-pages will reload in the selected language.',
+      svcTitle: 'Service Status',
+      svcIntro: 'This badge shows the real-time health of 4 microservices: ReefTriage (RT), LAYA, PostgreSQL (PG), and NocoBase (NB). Green dot = online, gray dot = offline.',
+      openTitle: 'Open in New Tab',
+      openIntro: 'Click this button to open the currently displayed page in a new browser tab.',
+      titleTitle: 'Page Title',
+      titleIntro: 'The center of the header shows the name of the currently active page.',
+      collapseTitle: 'Collapse Sidebar',
+      collapseIntro: 'Click this button at the bottom of the sidebar to collapse it to icon-only mode, giving more space to the main content. Drag the right edge of the sidebar to resize its width. Click again to expand.',
+      endTitle: 'You\'re All Set!',
+      endIntro: 'That\'s the core tour. You can reopen this guide anytime by clicking the "❓ Help" button in the top-right corner. Happy restoring!',
+      skip: 'Skip', next: 'Next', back: 'Back', done: 'Done'
+    },
+    zh: {
+      welcomeTitle: '欢迎使用 ReefTriage 管理系统',
+      welcomeIntro: '这是 ReefTriage 仙本那珊瑚礁恢复优先级决策管理控制台。让我们快速浏览一下核心功能。<br><br>点击"下一步"继续，或点击"跳过"退出。',
+      navTitle: '侧边栏导航',
+      navIntro: '侧边栏包含 12 个功能页面：宏观决策地图、空间筛选、区域绘制、微观实验室、报告中心、服务监控、API 管理、模型面板、连通性网络、数据来源、用户反馈和设置。点击任意项即可在主区域加载。',
+      langTitle: '语言切换',
+      langIntro: '点击此按钮可在中文和英文之间切换。界面及所有子页面将以所选语言重新加载。',
+      svcTitle: '服务状态',
+      svcIntro: '此指示灯显示 4 个微服务的实时健康状态：ReefTriage (RT)、LAYA、PostgreSQL (PG) 和 NocoBase (NB)。绿点 = 在线，灰点 = 离线。',
+      openTitle: '新标签页打开',
+      openIntro: '点击此按钮可在新的浏览器标签页中打开当前显示的页面。',
+      titleTitle: '页面标题',
+      titleIntro: '标题栏中央显示当前激活页面的名称。',
+      collapseTitle: '折叠侧边栏',
+      collapseIntro: '点击侧边栏底部的此按钮可将侧边栏折叠为仅图标模式，为主内容留出更多空间。也可以拖动侧边栏右边缘调整宽度。再次点击可展开。',
+      endTitle: '一切就绪！',
+      endIntro: '以上就是核心导览。您随时可以点击右上角的"❓ 帮助"按钮重新查看本指南。祝您使用愉快！',
+      skip: '跳过', next: '下一步', back: '上一步', done: '完成'
+    }
+  };
+
+  function buildTourSteps(){
+    var t = TOUR_I18N[lang] || TOUR_I18N.en;
+    return [
+      {intro: t.welcomeIntro, title: t.welcomeTitle},
+      {element: '.layui-side', intro: t.navIntro, title: t.navTitle},
+      {element: '#lang-btn', intro: t.langIntro, title: t.langTitle},
+      {element: '#svc-badge', intro: t.svcIntro, title: t.svcTitle},
+      {element: '#open-new-btn', intro: t.openIntro, title: t.openTitle},
+      {element: '#page-title', intro: t.titleIntro, title: t.titleTitle},
+      {element: '#collapse-btn', intro: t.collapseIntro, title: t.collapseTitle},
+      {intro: t.endIntro, title: t.endTitle}
+    ];
+  }
+
+  function markTourShown(){
+    try{ localStorage.setItem('reeftriage_tour_shown', 'true'); }catch(e){}
+  }
+
+  function startTour(){
+    if(typeof introJs !== 'function') return;
+    var t = TOUR_I18N[lang] || TOUR_I18N.en;
+    introJs().setOptions({
+      steps: buildTourSteps(),
+      skipLabel: t.skip,
+      nextLabel: t.next,
+      prevLabel: t.back,
+      doneLabel: t.done,
+      showStepNumbers: false,
+      showBullets: true,
+      exitOnEsc: true,
+      exitOnOverlayClick: false
+    }).oncomplete(function(){ markTourShown(); })
+      .onbeforeexit(function(){ markTourShown(); })
+      .start();
+  }
+
+  $('#tour-btn').on('click', function(e){
+    e.stopPropagation();
+    startTour();
+  });
+
+  applyLang();
+
+  // auto-start on first visit
+  try{
+    if(localStorage.getItem('reeftriage_tour_shown') !== 'true'){
+      setTimeout(startTour, 600);
+    }
+  }catch(e){}
+});
+</script>
+</body>
+</html>

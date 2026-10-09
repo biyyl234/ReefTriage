@@ -1,0 +1,779 @@
+/* ============================================================
+   ReefTriage · Dark Tech Theme (Layui 2.9.16 适配版)
+   - 保留原有深色科技风配色，覆盖 Layui 默认蓝绿主题
+   ============================================================ */
+:root {
+  --bg: #0a1628;
+  --panel: rgba(13, 27, 42, 0.85);
+  --panel-solid: #0d1b2a;
+  --cyan: #00d4ff;
+  --cyan-soft: #22e0ff;
+  --teal: #2dd4bf;
+  --invest: #10b981;
+  --monitor: #f59e0b;
+  --deprior: #6b7280;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --border: rgba(0, 212, 255, 0.15);
+  --border-strong: rgba(0, 212, 255, 0.35);
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+               "Microsoft YaHei", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+  font-size: 13px;
+}
+
+body { background: var(--bg); }
+.muted { color: var(--muted); font-size: 11px; }
+
+/* ============================================================
+   Layui 布局容器覆盖
+   ============================================================ */
+.reef-layout {
+  --drawer-h: 280px;
+  height: 100vh;
+  background: var(--bg);
+}
+.reef-layout.side-collapsed { --side-w: 48px; }
+.reef-layout { --side-w: 320px; }
+
+/* ---------- layui-header (顶部 48px) ---------- */
+.layui-header.reef-header {
+  left: 0; right: 0; top: 0;
+  height: 48px; line-height: 48px;
+  background: var(--panel);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 20px;
+  z-index: 1100;
+}
+.reef-header .brand { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+.reef-header .logo { font-size: 22px; line-height: 1; }
+.reef-header .brand-text h1 {
+  font-size: 15px; font-weight: 700; letter-spacing: 0.5px;
+  color: var(--cyan); line-height: 1.1; margin: 0;
+}
+.reef-header .subtitle { font-size: 10px; color: var(--muted); line-height: 1.2; margin: 0; }
+
+.topbar-stats {
+  display: flex; gap: 22px; margin-left: 12px; flex: 1;
+  line-height: 1.2;
+}
+.stat { display: flex; align-items: baseline; gap: 6px; }
+.stat-num { font-size: 16px; font-weight: 700; color: var(--cyan); }
+.stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.stat.invest .stat-num { color: var(--invest); }
+.stat.monitor .stat-num { color: var(--monitor); }
+.stat.deprioritize .stat-num { color: var(--deprior); }
+
+/* 顶部右侧 layui-nav 覆盖为透明工具栏 */
+.reef-topnav {
+  position: static !important;
+  background: transparent !important;
+  line-height: 48px;
+  display: flex; align-items: center; gap: 10px;
+  margin: 0; padding: 0;
+  height: 48px; flex: 0 0 auto;
+}
+.reef-topnav .layui-nav-item {
+  display: flex !important; align-items: center;
+  height: 48px !important; line-height: 48px !important;
+  float: none !important; padding: 0 2px !important;
+}
+.reef-topnav .layui-nav-item a,
+.reef-topnav .layui-nav-item { color: var(--text) !important; }
+.reef-topnav .layui-nav-item:hover,
+.reef-topnav .layui-this { background: transparent !important; }
+.reef-topnav .layui-nav-item:hover a { color: var(--cyan) !important; }
+.reef-topnav .reef-nav-static { padding: 0 2px; }
+.reef-topnav .layui-nav-bar,
+.reef-topnav .layui-nav-child { display: none !important; }
+
+.badge {
+  font-size: 10px; padding: 3px 10px; border-radius: 10px;
+  font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+  display: inline-block;
+}
+.badge-mock { background: rgba(107, 114, 128, 0.25); color: #9ca3af; border: 1px solid rgba(107,114,128,0.4); }
+.badge-live { background: rgba(16, 185, 129, 0.15); color: var(--invest); border: 1px solid rgba(16,185,129,0.4); }
+
+/* ---------- Layui 按钮深色风格 ---------- */
+.layui-btn {
+  background: transparent;
+  border-radius: 6px;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+.layui-btn:active { transform: scale(0.97); }
+.reef-btn-ghost.layui-btn,
+.reef-btn-ghost.layui-btn-primary {
+  background: rgba(255,255,255,0.06) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+}
+.reef-btn-ghost:hover { background: rgba(0,212,255,0.1) !important; border-color: var(--border-strong) !important; color: var(--cyan) !important; }
+.reef-btn-outline.layui-btn {
+  background: rgba(0,212,255,0.08) !important;
+  border: 1px solid var(--cyan) !important;
+  color: var(--cyan) !important;
+}
+.reef-btn-outline:hover { background: rgba(0,212,255,0.18) !important; box-shadow: 0 0 12px rgba(0,212,255,0.3); color: var(--cyan-soft) !important; }
+.reef-btn-outline:disabled { opacity: 0.5; cursor: not-allowed; }
+.reef-btn-conn.layui-btn {
+  background: rgba(0,212,255,0.08) !important;
+  border: 1px solid var(--border-strong) !important;
+  color: var(--cyan) !important;
+  padding: 8px 12px;
+}
+.reef-btn-conn:hover { background: rgba(0,212,255,0.18) !important; box-shadow: 0 0 12px rgba(0,212,255,0.3); color: var(--cyan-soft) !important; }
+.reef-btn-conn.conn-btn-flash { animation: connFlash 0.6s ease; }
+@keyframes connFlash {
+  0%   { box-shadow: 0 0 0 rgba(0,212,255,0); }
+  30%  { box-shadow: 0 0 22px rgba(0,212,255,0.8); background: rgba(0,212,255,0.28) !important; }
+  100% { box-shadow: 0 0 0 rgba(0,212,255,0); }
+}
+.reef-btn-basemap.layui-btn {
+  position: absolute; top: 12px; right: 12px; z-index: 900;
+  background: var(--panel) !important;
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  border-radius: 16px;
+}
+.reef-btn-basemap:hover { border-color: var(--cyan) !important; color: var(--cyan) !important; }
+.reef-lab-btn.layui-btn {
+  background: transparent !important;
+  border: 1px solid var(--cyan) !important;
+  color: var(--cyan) !important;
+  width: 100%;
+}
+.reef-lab-btn:hover { background: rgba(0,212,255,0.12) !important; box-shadow: 0 0 12px rgba(0,212,255,0.3); color: var(--cyan-soft) !important; }
+
+/* ---------- layui-side (左侧面板) ---------- */
+.layui-side.reef-side {
+  top: 48px;
+  bottom: var(--drawer-h);
+  width: var(--side-w);
+  background: var(--panel) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-right: 1px solid var(--border);
+  box-shadow: none;
+  overflow: hidden;
+  transition: width 0.25s ease;
+  z-index: 100;
+}
+.reef-side .layui-side-scroll {
+  width: 100%; height: 100%;
+  background: transparent;
+  position: relative;
+}
+.panel-toggle-btn {
+  position: absolute; top: 8px; right: 6px;
+  width: 22px; height: 22px;
+  background: rgba(0,212,255,0.1);
+  border: 1px solid var(--border);
+  color: var(--cyan); border-radius: 4px;
+  cursor: pointer; font-size: 12px; z-index: 5; line-height: 1;
+}
+.panel-toggle-btn:hover { background: rgba(0,212,255,0.25); }
+.reef-layout.side-collapsed .panel-toggle-btn { right: 12px; }
+.reef-layout.side-collapsed .panel-toggle-btn::before { content: "»"; }
+.reef-layout:not(.side-collapsed) .panel-toggle-btn::before { content: "«"; }
+.reef-layout:not(.side-collapsed) .panel-toggle-btn { font-size: 0; }
+.reef-layout:not(.side-collapsed) .panel-toggle-btn::after { content: "«"; font-size: 12px; }
+
+.panel-body {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  overflow-y: auto; padding: 12px 14px;
+  transition: opacity 0.15s, padding 0.25s;
+}
+.reef-layout.side-collapsed .panel-body { opacity: 0; pointer-events: none; padding: 0; }
+
+.panel-icons {
+  display: none;
+  flex-direction: column; align-items: center;
+  padding: 8px 0; gap: 6px;
+}
+.reef-layout.side-collapsed .panel-icons { display: flex; }
+.panel-icon-btn {
+  width: 32px; height: 32px;
+  background: rgba(0,212,255,0.08);
+  border: 1px solid var(--border);
+  border-radius: 6px; cursor: pointer; font-size: 15px;
+}
+.panel-icon-btn:hover { background: rgba(0,212,255,0.2); }
+
+/* Left panel edge resizer */
+.panel-resizer {
+  position: absolute; top: 0; right: 0; bottom: 0;
+  width: 4px; cursor: col-resize; z-index: 120;
+  background: transparent;
+  transition: background 0.15s;
+}
+.panel-resizer:hover, .panel-resizer.dragging { background: rgba(0,212,255,0.4); }
+.panel-resizer.dragging { background: rgba(0,212,255,0.6); }
+/* Hide while collapsed or on narrow screens */
+.reef-layout.side-collapsed .panel-resizer { display: none; }
+/* Disable width transition while dragging for immediate feedback */
+.reef-layout.panel-resizing .reef-side,
+.reef-layout.panel-resizing .reef-body { transition: none; }
+
+.panel-section {
+  margin-bottom: 14px; padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0,212,255,0.08);
+}
+.panel-section:last-child { border-bottom: none; }
+.panel-section-title {
+  font-size: 10px; font-weight: 700; color: var(--cyan);
+  text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 8px;
+}
+
+/* Workflow (保持自定义) */
+.workflow-flow { display: flex; align-items: center; gap: 2px; }
+.wf-node {
+  flex: 1 1 0; min-width: 0;
+  background: rgba(0,212,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: 6px; padding: 6px 2px;
+  text-align: center; cursor: pointer; transition: all 0.15s;
+}
+.wf-node:hover { border-color: var(--cyan); box-shadow: 0 0 10px rgba(0,212,255,0.3); }
+.wf-node .wf-icon { font-size: 14px; }
+.wf-node .wf-head {
+  font-size: 9px; font-weight: 700; color: var(--text);
+  margin-top: 3px; line-height: 1.1;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.wf-arrow { color: var(--cyan); font-size: 12px; opacity: 0.6; flex: 0 0 8px; text-align: center; }
+.wf-node.pulse-live { border-color: var(--cyan); box-shadow: 0 0 12px rgba(0,212,255,0.6); }
+
+/* Budget */
+.budget-row {
+  display: flex; justify-content: space-between;
+  font-size: 11px; margin: 6px 0 2px; color: var(--muted);
+}
+.budget-row strong { color: var(--cyan); }
+.reef-slider { margin: 8px 0 4px; padding: 4px 0; }
+
+/* Layui slider 深色覆盖 (覆盖内联样式) */
+.layui-slider { height: 4px; background: rgba(148,163,184,0.2) !important; border-radius: 2px; }
+.layui-slider .layui-slider-bar {
+  background: var(--cyan) !important;
+  border-radius: 2px;
+}
+.layui-slider-wrap {
+  background: transparent !important;
+}
+.layui-slider-wrap .layui-slider-wrap-btn {
+  border: 2px solid var(--cyan) !important;
+  background: var(--cyan) !important;
+  box-shadow: 0 0 8px rgba(0,212,255,0.6) !important;
+}
+.layui-slider-tips {
+  background: var(--panel-solid) !important;
+  border: 1px solid var(--border-strong) !important;
+  color: var(--cyan) !important;
+}
+
+/* Optimizer result */
+.opt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.opt-cell {
+  background: rgba(0,212,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: 6px; padding: 6px 8px;
+  display: flex; flex-direction: column;
+}
+.opt-v { font-size: 15px; font-weight: 700; color: var(--cyan); }
+.opt-k { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+.opt-method { margin-top: 6px; text-align: right; font-style: italic; }
+
+/* ---------- layui-body (地图) ---------- */
+.layui-body.reef-body {
+  left: var(--side-w);
+  top: 48px;
+  bottom: var(--drawer-h);
+  padding: 0;
+  background: var(--bg);
+  overflow: hidden;
+  transition: left 0.25s ease;
+}
+#map { position: absolute; inset: 0; background: #0a1628; }
+
+.legend {
+  position: absolute; left: 12px; bottom: 12px; z-index: 900;
+  background: var(--panel); backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  padding: 10px 12px; border-radius: 8px; font-size: 11px;
+}
+.legend-title { font-weight: 700; margin-bottom: 6px; color: var(--cyan); text-transform: uppercase; letter-spacing: 1px; font-size: 10px; }
+.legend-row { display: flex; align-items: center; gap: 6px; margin: 3px 0; color: var(--text); }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.dot.invest { background: var(--invest); box-shadow: 0 0 6px var(--invest); }
+.dot.monitor { background: var(--monitor); box-shadow: 0 0 6px var(--monitor); }
+.dot.deprioritize { background: var(--deprior); }
+
+/* Loading */
+.loading {
+  position: absolute; inset: 0;
+  background: rgba(10, 22, 40, 0.75);
+  z-index: 1500;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  color: var(--text); font-size: 14px; gap: 12px;
+}
+.loading.hidden { display: none; }
+.spinner {
+  width: 34px; height: 34px;
+  border: 3px solid rgba(0,212,255,0.2);
+  border-top-color: var(--cyan);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============================================================
+   右侧详情抽屉 (保留自定义滑出)
+   ============================================================ */
+.detail-drawer {
+  position: fixed;
+  top: 48px; right: -400px;
+  bottom: var(--drawer-h);
+  width: 360px; max-width: 90vw;
+  background: var(--panel);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-left: 1px solid var(--border);
+  box-shadow: -4px 0 24px rgba(0,0,0,0.4);
+  transition: right 0.28s ease;
+  z-index: 1050;
+  overflow-y: auto;
+  padding: 16px;
+}
+.detail-drawer.open { right: 0; }
+
+.detail-close {
+  position: absolute; top: 10px; right: 10px;
+  width: 28px; height: 28px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  color: var(--text); border-radius: 50%;
+  cursor: pointer; font-size: 13px; z-index: 2;
+}
+.detail-close:hover { background: rgba(239,68,68,0.3); border-color: #ef4444; }
+
+.detail-head { margin-bottom: 10px; padding-right: 30px; }
+.detail-name { font-size: 17px; font-weight: 700; color: var(--text); }
+.detail-id { font-size: 11px; margin-top: 2px; }
+.detail-badge {
+  display: inline-block; margin-top: 6px;
+  padding: 2px 10px; border-radius: 10px;
+  font-size: 10px; font-weight: 700;
+  color: #0a1628; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.detail-score-block {
+  text-align: center; padding: 10px 0; margin-bottom: 10px;
+  background: rgba(0,212,255,0.05);
+  border: 1px solid var(--border); border-radius: 8px;
+}
+.detail-score-num {
+  font-size: 38px; font-weight: 800; color: var(--cyan);
+  text-shadow: 0 0 18px rgba(0,212,255,0.5); line-height: 1;
+}
+.detail-section { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(0,212,255,0.1); }
+.detail-section-title {
+  font-size: 10px; font-weight: 700; color: var(--cyan);
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;
+}
+.reef-lab-section { border-top: 1px solid var(--border); }
+
+.ts-row { display: flex; align-items: center; gap: 6px; margin: 4px 0; font-size: 11px; }
+.ts-row .ts-k { flex: 0 0 90px; color: var(--muted); }
+.ts-row .ts-bar { flex: 1; height: 6px; background: rgba(148,163,184,0.15); border-radius: 3px; overflow: hidden; }
+.ts-row .ts-fill { height: 100%; border-radius: 3px; }
+.ts-row .ts-v { flex: 0 0 28px; text-align: right; font-weight: 700; color: var(--text); }
+
+.ci-track { position: relative; height: 8px; background: rgba(148,163,184,0.15); border-radius: 4px; margin-top: 4px; }
+.ci-range { position: absolute; top: 0; bottom: 0; background: rgba(0,212,255,0.3); border-radius: 4px; }
+.ci-mid { position: absolute; top: -2px; bottom: -2px; width: 3px; background: var(--cyan); border-radius: 2px; box-shadow: 0 0 6px var(--cyan); }
+.ci-label { font-size: 10px; margin-top: 4px; text-align: center; }
+
+.radar-box { width: 100%; height: 180px; }
+.detail-feature-row {
+  display: flex; justify-content: space-between;
+  font-size: 11px; padding: 3px 0;
+  border-bottom: 1px dashed rgba(148,163,184,0.1);
+}
+.detail-feature-row .k { color: var(--muted); }
+.detail-feature-row .v { color: var(--text); font-weight: 600; }
+
+/* ============================================================
+   底部抽屉 (自定义拖拽 + layui-tab)
+   ============================================================ */
+.bottom-drawer {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  height: var(--drawer-h);
+  background: var(--panel);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  z-index: 1000;
+}
+.drawer-handle {
+  height: 6px; flex: 0 0 6px; cursor: row-resize;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; transition: background 0.15s;
+}
+.drawer-handle:hover, .drawer-handle.dragging { background: rgba(0,212,255,0.25); }
+.drawer-handle span { width: 40px; height: 3px; border-radius: 2px; background: rgba(148,163,184,0.4); }
+.drawer-handle:hover span { background: var(--cyan); }
+
+/* Layui tab 深色覆盖 */
+.reef-tab {
+  flex: 1; display: flex; flex-direction: column;
+  margin: 0; background: transparent;
+}
+.reef-tab > .layui-tab-title {
+  background: transparent;
+  border-bottom: 1px solid var(--border);
+  padding: 0 8px; height: auto;
+}
+.reef-tab > .layui-tab-title li {
+  color: var(--muted);
+  font-size: 11px; font-weight: 600;
+  padding: 8px 14px;
+  transition: all 0.15s;
+}
+.reef-tab > .layui-tab-title li:hover { color: var(--text); }
+.reef-tab > .layui-tab-title li.layui-this {
+  color: var(--cyan);
+  background: transparent;
+}
+.reef-tab > .layui-tab-title li.layui-this::after {
+  border-bottom: 2px solid var(--cyan) !important;
+  box-shadow: 0 0 8px rgba(0,212,255,0.5);
+}
+.reef-tab > .layui-tab-content {
+  flex: 1; padding: 8px; background: transparent;
+  overflow: hidden;
+}
+.reef-tab > .layui-tab-content .layui-tab-item {
+  height: 100%;
+}
+.echart-box { width: 100%; height: 100%; min-height: 120px; }
+
+/* ---------- Layui table 深色覆盖 ---------- */
+.layui-table-view {
+  background: transparent !important;
+  border: none !important;
+  margin: 0;
+}
+.layui-table-view .layui-table {
+  width: 100%;
+  color: var(--text);
+  background: transparent;
+}
+.layui-table-view .layui-table thead tr {
+  background: var(--panel-solid) !important;
+}
+.layui-table-view .layui-table th {
+  background: var(--panel-solid) !important;
+  color: var(--cyan) !important;
+  border-bottom: 1px solid var(--border) !important;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+}
+.layui-table-view .layui-table td {
+  background: transparent !important;
+  color: var(--text);
+  border-bottom: 1px solid rgba(148,163,184,0.08) !important;
+  font-size: 11px;
+}
+.layui-table-view .layui-table tbody tr:hover,
+.layui-table-view .layui-table tbody tr:hover > td {
+  background: rgba(0,212,255,0.08) !important;
+}
+.layui-table-view .layui-table tbody tr.funded,
+.layui-table-view .layui-table tbody tr.funded > td {
+  background: rgba(0,212,255,0.06) !important;
+  box-shadow: inset 2px 0 0 var(--cyan);
+}
+.layui-table-view .layui-table th .layui-table-sort { color: var(--muted); }
+.layui-table-view .layui-table th .layui-table-sort.layui-table-sort-asc,
+.layui-table-view .layui-table th .layui-table-sort.layui-table-sort-desc { color: var(--cyan); }
+.layui-table-view .layui-table-tool,
+.layui-table-view .layui-table-page {
+  background: transparent !important; color: var(--muted);
+}
+.layui-table-view .layui-form-switch { background: rgba(148,163,184,0.3); }
+
+.seg-pill {
+  display: inline-block; padding: 1px 7px; border-radius: 8px;
+  font-size: 10px; font-weight: 700;
+}
+.seg-pill.invest { background: rgba(16,185,129,0.2); color: var(--invest); }
+.seg-pill.monitor { background: rgba(245,158,11,0.2); color: var(--monitor); }
+.seg-pill.deprioritize { background: rgba(107,114,128,0.2); color: var(--deprior); }
+
+/* ---------- Segment list table: fixed-height body for auto-scroll marquee ----------
+   The bottom drawer uses --drawer-h (default 280px, draggable). We constrain the
+   Layui table body so content overflows and the JS auto-scroll can kick in.
+   Height = drawer height minus handle(6px) + tab-title(~38px) + content padding(16px)
+   + table header(~38px) ≈ 98px chrome.
+   NOTE: Layui renders .layui-table-view as a sibling of #seg-table-layui inside
+   #pane-segments, so we scope selectors to #pane-segments. */
+#pane-segments { height: 100%; overflow: hidden; position: relative; }
+#pane-segments .layui-table-view {
+  height: 100% !important;
+  overflow: hidden;
+}
+#pane-segments .layui-table-box {
+  height: 100%;
+  overflow: hidden;
+}
+#pane-segments .layui-table-body {
+  height: calc(var(--drawer-h) - 98px) !important;
+  max-height: calc(var(--drawer-h) - 98px) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+#pane-segments .layui-table-main {
+  overflow-x: hidden !important;
+}
+
+/* ML metrics */
+.ml-metrics {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 8px;
+}
+.ml-metric {
+  background: rgba(0,212,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: 6px; padding: 6px 4px; text-align: center;
+}
+.ml-metric .v { font-size: 15px; font-weight: 700; color: var(--cyan); display: block; }
+.ml-metric .k { font-size: 9px; color: var(--muted); text-transform: uppercase; }
+.ml-cm-title { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; margin: 4px 0; letter-spacing: 0.5px; }
+.ml-cm {
+  display: grid; grid-template-columns: 80px 1fr 1fr;
+  gap: 3px; font-size: 10px; margin-bottom: 6px; max-width: 360px;
+}
+.ml-cm .cm-cell {
+  padding: 6px 4px; text-align: center; border-radius: 4px;
+  background: rgba(148,163,184,0.1); color: var(--text); font-weight: 600;
+}
+.ml-cm .cm-head { background: transparent; color: var(--muted); }
+.ml-cm .cm-tp { background: rgba(16,185,129,0.3); color: var(--invest); }
+.ml-cm .cm-fp { background: rgba(245,158,11,0.3); color: var(--monitor); }
+.ml-cm .cm-fn { background: rgba(239,68,68,0.3); color: #f87171; }
+.ml-cm .cm-tn { background: rgba(0,212,255,0.2); color: var(--cyan); }
+
+/* ============================================================
+   Workflow modal (保留自定义)
+   ============================================================ */
+.wf-modal {
+  position: fixed; inset: 0;
+  background: rgba(10, 22, 40, 0.8);
+  backdrop-filter: blur(4px);
+  z-index: 3000;
+  display: flex; align-items: center; justify-content: center;
+}
+.wf-modal.hidden { display: none; }
+.wf-modal-box {
+  background: var(--panel-solid);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  width: 440px; max-width: 92vw; max-height: 80vh;
+  overflow: auto;
+  box-shadow: 0 0 40px rgba(0,212,255,0.15);
+}
+.wf-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+}
+.wf-modal-head h3 { font-size: 14px; color: var(--cyan); }
+.wf-close {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid var(--border); color: var(--text);
+  width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
+}
+.wf-close:hover { background: rgba(239,68,68,0.3); border-color: #ef4444; }
+.wf-modal-body { padding: 14px 16px; font-size: 12px; color: var(--text); line-height: 1.6; }
+.wf-modal-body .wf-detail-row {
+  display: flex; justify-content: space-between;
+  padding: 4px 0; border-bottom: 1px solid rgba(148,163,184,0.1);
+}
+.wf-modal-body .wf-detail-row b { color: var(--cyan); }
+.wf-modal-body ul { margin: 6px 0 6px 18px; color: var(--muted); }
+.wf-modal-body p { color: var(--muted); margin-top: 8px; }
+
+/* ============================================================
+   Leaflet dark overrides
+   ============================================================ */
+.leaflet-container { background: #0a1628; font-family: inherit; }
+.leaflet-bar a {
+  background: var(--panel-solid); color: var(--cyan);
+  border: 1px solid var(--border);
+}
+.leaflet-control-attribution {
+  background: rgba(10,22,40,0.7) !important;
+  color: var(--muted) !important;
+  font-size: 9px !important;
+}
+.leaflet-control-attribution a { color: var(--muted) !important; }
+
+.leaflet-overlay-pane svg path.reef-invest { filter: drop-shadow(0 0 4px rgba(16,185,129,0.8)); }
+.leaflet-overlay-pane svg path.reef-monitor { filter: drop-shadow(0 0 4px rgba(245,158,11,0.7)); }
+.leaflet-overlay-pane svg path.reef-deprioritize { filter: drop-shadow(0 0 3px rgba(107,114,128,0.5)); }
+.leaflet-overlay-pane svg path.reef-selected { animation: reefPulse 1.5s ease-in-out infinite; }
+@keyframes reefPulse {
+  0%, 100% { stroke: #00d4ff; stroke-width: 2.5; filter: drop-shadow(0 0 6px #00d4ff); }
+  50% { stroke: #22e0ff; stroke-width: 4.5; filter: drop-shadow(0 0 12px #00d4ff); }
+}
+
+/* ============================================================
+   Custom Scrollbars (dark tech, 6px cyan)
+   ============================================================ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: rgba(13, 27, 42, 0.5); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: rgba(0, 212, 255, 0.4); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0, 212, 255, 0.7); }
+::-webkit-scrollbar-corner { background: rgba(13, 27, 42, 0.5); }
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 212, 255, 0.4) rgba(13, 27, 42, 0.5);
+}
+
+/* Layui component internal scrollbars */
+.layui-table-body::-webkit-scrollbar,
+.layui-table-main::-webkit-scrollbar,
+.layui-table-view::-webkit-scrollbar { width: 6px; height: 6px; }
+.layui-table-body::-webkit-scrollbar-track,
+.layui-table-main::-webkit-scrollbar-track { background: rgba(13,27,42,0.5); }
+.layui-table-body::-webkit-scrollbar-thumb,
+.layui-table-main::-webkit-scrollbar-thumb { background: rgba(0,212,255,0.35); border-radius: 3px; }
+.layui-table-body::-webkit-scrollbar-thumb:hover,
+.layui-table-main::-webkit-scrollbar-thumb:hover { background: rgba(0,212,255,0.6); }
+.layui-form-select dl::-webkit-scrollbar { width: 4px; }
+.layui-form-select dl::-webkit-scrollbar-thumb { background: rgba(0,212,255,0.3); border-radius: 2px; }
+.layui-layer-page::-webkit-scrollbar,
+.layui-layer-content::-webkit-scrollbar { width: 6px; }
+.layui-side-scroll::-webkit-scrollbar { width: 4px; }
+
+/* ============================================================
+   Mobile-only buttons (hidden on desktop)
+   ============================================================ */
+.mobile-menu-btn {
+  display: none;
+  background: rgba(0,212,255,0.1);
+  border: 1px solid var(--border);
+  color: var(--cyan);
+  border-radius: 6px;
+  width: 32px; height: 32px;
+  font-size: 16px; cursor: pointer;
+  flex: 0 0 auto;
+}
+.drawer-fab {
+  display: none;
+  position: absolute; right: 12px; bottom: 12px; z-index: 950;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--panel); backdrop-filter: blur(12px);
+  border: 1px solid var(--border-strong);
+  color: var(--cyan); font-size: 18px; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,212,255,0.3);
+}
+.drawer-fab:hover { background: rgba(0,212,255,0.15); }
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+
+/* ---------- Tablet: 768px – 1200px ---------- */
+@media (max-width: 1200px) {
+  .reef-layout { --side-w: 48px; --drawer-h: 200px; }
+  .panel-resizer { display: none; }
+  .topbar-stats { gap: 14px; margin-left: 8px; }
+  .stat-num { font-size: 14px; }
+  .stat-label { font-size: 9px; }
+  .reef-header .brand-text .subtitle { display: none; }
+  .detail-drawer { width: 300px; }
+  .ml-metrics { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ---------- Mobile: <768px ---------- */
+@media (max-width: 768px) {
+  .reef-header { padding: 0 10px; gap: 10px; height: 48px; line-height: 48px; }
+  .mobile-menu-btn { display: block; }
+  .reef-header .brand-text h1 { font-size: 13px; }
+  .reef-header .brand-text .subtitle { display: none; }
+
+  /* Stats: hide labels, shrink numbers */
+  .topbar-stats { gap: 8px; margin-left: 4px; overflow-x: auto; }
+  .stat-label { display: none; }
+  .stat-num { font-size: 13px; }
+
+  /* Left panel: off-canvas, hidden by default */
+  .reef-side.reef-side {
+    position: fixed; left: 0; top: 48px; bottom: 0;
+    width: 280px !important; max-width: 85vw;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 1200;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+  }
+  .reef-layout.mobile-panel-open .reef-side {
+    transform: translateX(0);
+  }
+  .reef-layout.mobile-panel-open .panel-body { opacity: 1; pointer-events: auto; padding: 12px 14px; }
+  .reef-layout.mobile-panel-open .panel-icons { display: none; }
+  .reef-layout.mobile-panel-open .panel-toggle-btn { display: none; }
+
+  /* Body takes full width when panel is off-canvas; drawer hidden by default */
+  .layui-body.reef-body { left: 0 !important; bottom: 0 !important; }
+
+  /* Bottom drawer: hidden by default, opens as near-fullscreen sheet */
+  .bottom-drawer {
+    height: 55vh !important;
+    display: none;
+  }
+  .reef-layout.drawer-open .bottom-drawer {
+    display: flex;
+  }
+  .drawer-fab { display: block; }
+  .drawer-handle { display: none; }
+
+  /* Detail drawer: fullscreen, slide in/out */
+  .detail-drawer {
+    width: 100vw !important;
+    top: 48px; bottom: 0;
+    right: -100vw !important;
+  }
+  .detail-drawer.open { right: 0 !important; }
+
+  /* Legend compact */
+  .legend { font-size: 10px; padding: 6px 8px; bottom: 60px; }
+
+  /* ML metrics wrap */
+  .ml-metrics { grid-template-columns: repeat(2, 1fr); }
+
+  /* Header buttons smaller */
+  .reef-topnav .layui-btn-sm { padding: 0 8px; font-size: 11px; }
+
+  /* WF modal full width */
+  .wf-modal-box { width: 95vw; }
+}

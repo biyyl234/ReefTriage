@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReefTriage Admin Panel</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #333; padding: 20px; }
+  h1 { font-size: 22px; margin-bottom: 6px; color: #1a1a2e; }
+  .subtitle { color: #666; font-size: 13px; margin-bottom: 20px; }
+  .section { background: #fff; border-radius: 10px; padding: 18px; margin-bottom: 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .section-title { font-size: 15px; font-weight: 600; margin-bottom: 14px; color: #1a1a2e; border-left: 3px solid #0066cc; padding-left: 10px; }
+  .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .status-card { padding: 14px; border-radius: 8px; border: 1px solid #e0e0e0; text-align: center; transition: all 0.2s; }
+  .status-card.running { border-color: #52c41a; background: #f6ffed; }
+  .status-card.down { border-color: #ff4d4f; background: #fff2f0; }
+  .status-card.checking { border-color: #faad14; background: #fffbe6; }
+  .status-card .svc-name { font-size: 13px; color: #666; margin-bottom: 4px; }
+  .status-card .svc-port { font-size: 11px; color: #999; margin-bottom: 8px; }
+  .status-card .svc-state { font-size: 16px; font-weight: 700; }
+  .status-card.running .svc-state { color: #52c41a; }
+  .status-card.down .svc-state { color: #ff4d4f; }
+  .status-card.checking .svc-state { color: #faad14; }
+  .btn-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+  .btn { padding: 10px 16px; border: none; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; justify-content: center; }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+  .btn:active { transform: translateY(0); }
+  .btn-primary { background: #0066cc; color: #fff; }
+  .btn-success { background: #52c41a; color: #fff; }
+  .btn-warning { background: #faad14; color: #fff; }
+  .btn-purple { background: #722ed1; color: #fff; }
+  .btn-cyan { background: #13c2c2; color: #fff; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn .icon { font-size: 16px; }
+  .result-box { background: #1e1e2e; color: #a6e3a1; padding: 14px; border-radius: 8px; font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; margin-top: 12px; }
+  .result-box:empty { display: none; }
+  .result-box .error { color: #f38ba8; }
+  .result-box .success { color: #a6e3a1; }
+  .result-box .info { color: #89b4fa; }
+  .refresh-btn { background: none; border: 1px solid #ddd; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; color: #666; float: right; }
+  .refresh-btn:hover { background: #f0f0f0; }
+  .ext-note { font-size: 11px; color: #999; margin-top: 8px; font-style: italic; }
+</style>
+</head>
+<body>
+
+<h1>🪸 ReefTriage Admin Panel</h1>
+<p class="subtitle">统一管理面板 — 服务状态 / API 操控 / 数据同步</p>
+
+<!-- 服务状态总览 -->
+<div class="section">
+  <div class="section-title">
+    服务状态总览
+    <button class="refresh-btn" onclick="checkAllServices()">🔄 刷新</button>
+  </div>
+  <div class="status-grid" id="statusGrid">
+    <div class="status-card checking" id="card-reeftriage">
+      <div class="svc-name">ReefTriage</div>
+      <div class="svc-port">:8000</div>
+      <div class="svc-state">检查中...</div>
+    </div>
+    <div class="status-card checking" id="card-laya">
+      <div class="svc-name">Laya / Jev</div>
+      <div class="svc-port">:5000</div>
+      <div class="svc-state">检查中...</div>
+    </div>
+    <div class="status-card checking" id="card-postgres">
+      <div class="svc-name">PostgreSQL</div>
+      <div class="svc-port">:5432</div>
+      <div class="svc-state">检查中...</div>
+    </div>
+    <div class="status-card checking" id="card-nocobase">
+      <div class="svc-name">NocoBase</div>
+      <div class="svc-port">:13000</div>
+      <div class="svc-state">检查中...</div>
+    </div>
+  </div>
+</div>
+
+<!-- API 操控面板 -->
+<div class="section">
+  <div class="section-title">API 操控面板</div>
+  <div class="btn-grid">
+    <button class="btn btn-primary" onclick="callAPI('recalc', this)">
+      <span class="icon">🔄</span> 触发重新评分
+    </button>
+    <button class="btn btn-cyan" onclick="callAPI('health', this)">
+      <span class="icon">💚</span> 查看 ReefTriage 状态
+    </button>
+    <button class="btn btn-purple" onclick="callAPI('laya-status', this)">
+      <span class="icon">🤖</span> 查看 Laya 状态
+    </button>
+    <button class="btn btn-success" onclick="callAPI('sync-to-nocobase', this)">
+      <span class="icon">⬆️</span> 同步 → NocoBase
+    </button>
+    <button class="btn btn-warning" onclick="callAPI('sync-from-nocobase', this)">
+      <span class="icon">⬇️</span> 回写 ← NocoBase
+    </button>
+    <button class="btn btn-primary" onclick="callAPI('stats', this)">
+      <span class="icon">📊</span> 查看统计数据
+    </button>
+  </div>
+  <div class="result-box" id="resultBox"></div>
+  <p class="ext-note">💡 扩展提示：在 app/main.py 中添加新端点，然后在此页面添加对应按钮即可。</p>
+</div>
+
+<script>
+const API_BASE = '';
+
+function setCardState(id, state, detail) {
+  const card = document.getElementById('card-' + id);
+  if (!card) return;
+  card.className = 'status-card ' + state;
+  const stateEl = card.querySelector('.svc-state');
+  const labels = { running: '● 运行中', down: '● 未运行', checking: '检查中...' };
+  stateEl.textContent = detail || labels[state] || state;
+}
+
+async function checkAllServices() {
+  ['reeftriage','laya','postgres','nocobase'].forEach(id => setCardState(id, 'checking'));
+  try {
+    const resp = await fetch(API_BASE + '/api/services-status');
+    const data = await resp.json();
+    const services = data.services || data;
+    for (const [key, val] of Object.entries(services)) {
+      const state = val.status === 'ok' || val.status === 'running' ? 'running' : 'down';
+      const detail = val.status === 'ok' ? '● 运行中' : (val.detail || '● 未运行');
+      setCardState(key, state, detail);
+    }
+  } catch (e) {
+    setCardState('reeftriage', 'down', '连接失败');
+  }
+}
+
+async function callAPI(action, btn) {
+  const box = document.getElementById('resultBox');
+  box.innerHTML = '<span class="info">⏳ 执行中: ' + action + ' ...</span>';
+  if (btn) btn.disabled = true;
+
+  try {
+    let url, method = 'GET', body = null;
+    switch(action) {
+      case 'recalc':
+        url = API_BASE + '/api/recalc'; method = 'POST'; break;
+      case 'health':
+        url = API_BASE + '/api/health'; break;
+      case 'stats':
+        url = API_BASE + '/api/stats'; break;
+      case 'laya-status':
+        url = API_BASE + '/api/laya-status'; break;
+      case 'sync-to-nocobase':
+        url = API_BASE + '/api/sync-to-nocobase'; method = 'POST'; break;
+      case 'sync-from-nocobase':
+        url = API_BASE + '/api/sync-from-nocobase'; method = 'POST'; break;
+      default:
+        throw new Error('Unknown action: ' + action);
+    }
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    if (body) opts.body = JSON.stringify(body);
+    const resp = await fetch(url, opts);
+    const data = await resp.json();
+    box.innerHTML = '<span class="success">✅ ' + action + ' 成功</span>\n' + JSON.stringify(data, null, 2);
+    if (action.startsWith('sync')) checkAllServices();
+  } catch (e) {
+    box.innerHTML = '<span class="error">❌ ' + action + ' 失败: ' + e.message + '</span>';
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+// 页面加载时自动检查服务状态，每 30 秒自动刷新
+checkAllServices();
+setInterval(checkAllServices, 30000);
+</script>
+</body>
+</html>

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ReefTriage · Semporna Reef Restoration</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://cdn.staticfile.org/layui/2.9.16/css/layui.css" />
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<link rel="stylesheet" href="/static/style.css?v=12" />
+</head>
+<body class="layui-layout-body">
+
+<!-- ============ Layui admin layout ============ -->
+<div class="layui-layout layui-layout-admin reef-layout" id="reef-layout">
+
+  <!-- ======== 顶部栏 layui-header ======== -->
+  <div class="layui-header reef-header">
+    <button id="mobile-menu-btn" class="mobile-menu-btn" data-i18n-title="mobile_menu_open" title="Menu">☰</button>
+    <div class="brand">
+      <span class="logo">🪸</span>
+      <div class="brand-text">
+        <h1 data-i18n="app_title">ReefTriage</h1>
+        <p class="subtitle" data-i18n="app_subtitle">Semporna Reef Restoration</p>
+      </div>
+    </div>
+    <div class="topbar-stats" id="stats-bar">
+      <div class="stat"><span class="stat-num" id="stat-total">–</span><span class="stat-label" data-i18n="stat_segments">Segments</span></div>
+      <div class="stat invest"><span class="stat-num" id="stat-invest">–</span><span class="stat-label" data-i18n="stat_invest">Invest</span></div>
+      <div class="stat monitor"><span class="stat-num" id="stat-monitor">–</span><span class="stat-label" data-i18n="stat_monitor">Monitor</span></div>
+      <div class="stat deprioritize"><span class="stat-num" id="stat-deprior">–</span><span class="stat-label" data-i18n="stat_deprior">Deprioritize</span></div>
+      <div class="stat"><span class="stat-num" id="stat-avg">–</span><span class="stat-label" data-i18n="stat_avg">Avg Score</span></div>
+    </div>
+    <ul class="layui-nav layui-layout-right reef-topnav" id="topnav">
+      <li class="layui-nav-item reef-nav-static">
+        <span id="laya-badge" class="badge badge-mock" data-i18n="laya_mock">Laya: MOCK</span>
+      </li>
+      <li class="layui-nav-item reef-nav-static">
+        <button id="lang-btn" class="layui-btn layui-btn-primary layui-btn-sm reef-btn-ghost">中文</button>
+      </li>
+      <li class="layui-nav-item reef-nav-static">
+        <button id="recalc-btn" class="layui-btn layui-btn-sm reef-btn-outline" data-i18n="recalc">↻ Recalc</button>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ======== 左侧面板 layui-side ======== -->
+  <div class="layui-side reef-side" id="left-panel">
+    <div class="panel-resizer" id="panel-resizer" title="drag to resize"></div>
+    <div class="layui-side-scroll reef-side-scroll">
+      <button class="panel-toggle-btn" id="panel-toggle-btn" data-i18n-title="collapse_panel" title="collapse panel">⟨</button>
+
+      <div class="panel-body">
+        <!-- 工作流 -->
+        <section class="panel-section" data-zone="workflow">
+          <div class="panel-section-title" data-i18n="workflow_title">3-Layer Decision Workflow</div>
+          <div class="workflow-flow" id="workflow-flow">
+            <div class="wf-node" data-wf="1">
+              <div class="wf-icon">🧬</div>
+              <div class="wf-head" data-i18n="wf1_t">12-Dim Features</div>
+            </div>
+            <div class="wf-arrow">›</div>
+            <div class="wf-node" data-wf="2">
+              <div class="wf-icon">🤖</div>
+              <div class="wf-head" data-i18n="wf2_t">ML Augment</div>
+            </div>
+            <div class="wf-arrow">›</div>
+            <div class="wf-node" data-wf="3">
+              <div class="wf-icon">⚖️</div>
+              <div class="wf-head" data-i18n="wf3_t">Fusion</div>
+            </div>
+            <div class="wf-arrow">›</div>
+            <div class="wf-node" data-wf="4">
+              <div class="wf-icon">🎯</div>
+              <div class="wf-head" data-i18n="wf4_t">Decision</div>
+            </div>
+            <div class="wf-arrow">›</div>
+            <div class="wf-node" data-wf="5">
+              <div class="wf-icon">🪸</div>
+              <div class="wf-head" data-i18n="wf5_t">Priority</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 预算控制 (Layui slider) -->
+        <section class="panel-section" data-zone="budget">
+          <div class="panel-section-title" data-i18n="budget_title">Budget Control</div>
+          <div class="budget-row">
+            <label data-i18n="budget_label">Restoration Budget</label>
+            <strong><span id="budget-value">$50k</span></strong>
+          </div>
+          <div id="budget-slider" class="reef-slider"></div>
+          <div class="budget-row">
+            <label data-i18n="unit_cost_label">Cost / segment</label>
+            <strong>$<span id="unit-cost">15</span>k</strong>
+          </div>
+          <div id="unit-slider" class="reef-slider"></div>
+        </section>
+
+        <!-- 优化结果 -->
+        <section class="panel-section" data-zone="result">
+          <div class="panel-section-title" data-i18n="optimizer_title">Optimizer Result</div>
+          <div class="opt-grid">
+            <div class="opt-cell"><span class="opt-v" id="opt-n">–</span><span class="opt-k" data-i18n="optimizer_selected">Selected</span></div>
+            <div class="opt-cell"><span class="opt-v" id="opt-cost">–</span><span class="opt-k" data-i18n="optimizer_cost">Total Cost</span></div>
+            <div class="opt-cell"><span class="opt-v" id="opt-used">–</span><span class="opt-k" data-i18n="optimizer_used">Budget Used</span></div>
+            <div class="opt-cell"><span class="opt-v" id="opt-gain">–</span><span class="opt-k" data-i18n="optimizer_gain">Total Gain</span></div>
+          </div>
+          <div class="opt-method muted" id="budget-method"></div>
+        </section>
+
+        <!-- 连通性按钮 -->
+        <section class="panel-section" data-zone="conn">
+          <button id="conn-btn" class="layui-btn layui-btn-fluid reef-btn-conn">🌐 <span data-i18n="conn_btn">Connectivity Network</span></button>
+        </section>
+      </div>
+
+      <!-- 折叠时的图标栏 -->
+      <div class="panel-icons">
+        <button class="panel-icon-btn" data-goto="workflow" title="Workflow">🧬</button>
+        <button class="panel-icon-btn" data-goto="budget" title="Budget">💰</button>
+        <button class="panel-icon-btn" data-goto="result" title="Result">📊</button>
+        <button class="panel-icon-btn" data-goto="conn" title="Connectivity">🌐</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== 地图区域 layui-body ======== -->
+  <div class="layui-body reef-body">
+    <div id="map"></div>
+
+    <!-- 底图切换 -->
+    <button id="basemap-toggle" class="layui-btn layui-btn-sm reef-btn-basemap">🛰️ <span data-i18n="basemap_satellite">Satellite</span></button>
+
+    <!-- 移动端底部抽屉 FAB -->
+    <button id="drawer-fab" class="drawer-fab" data-i18n-title="drawer_open" title="Open panels">📊</button>
+
+    <!-- 图例 -->
+    <div class="legend" id="legend">
+      <div class="legend-title" data-i18n="legend_title">Priority</div>
+      <div class="legend-row"><span class="dot invest"></span><span data-i18n="legend_invest">Invest (≥37.6)</span></div>
+      <div class="legend-row"><span class="dot monitor"></span><span data-i18n="legend_monitor">Monitor (30–37.5)</span></div>
+      <div class="legend-row"><span class="dot deprioritize"></span><span data-i18n="legend_deprior">Deprioritize (&lt;30)</span></div>
+    </div>
+
+    <!-- 加载遮罩 -->
+    <div id="loading" class="loading hidden">
+      <div class="spinner"></div>
+      <p data-i18n="loading">Scoring reef segments…</p>
+    </div>
+  </div>
+
+  <!-- ======== 底部抽屉 (自定义拖拽 + layui-tab) ======== -->
+  <div class="bottom-drawer" id="bottom-drawer">
+    <div class="drawer-handle" id="drawer-handle" data-i18n-title="drag_to_resize" title="drag to resize"><span></span></div>
+    <div class="layui-tab reef-tab" lay-filter="drawerTab">
+      <ul class="layui-tab-title">
+        <li class="layui-this" data-tab="segments" data-i18n="tab_segments">Segment List</li>
+        <li data-tab="weights" data-i18n="tab_weights">Feature Weights</li>
+        <li data-tab="compare" data-i18n="tab_compare">Model Compare</li>
+        <li data-tab="connectivity" data-i18n="tab_connectivity">Connectivity</li>
+        <li data-tab="ml" data-i18n="tab_ml">ML Model</li>
+      </ul>
+      <div class="layui-tab-content">
+        <div class="layui-tab-item layui-show" id="pane-segments">
+          <div id="seg-table-layui"></div>
+        </div>
+        <div class="layui-tab-item" id="pane-weights"><div class="echart-box" id="chart-weights"></div></div>
+        <div class="layui-tab-item" id="pane-compare"><div class="echart-box" id="chart-compare"></div></div>
+        <div class="layui-tab-item" id="pane-connectivity"><div class="echart-box" id="chart-connectivity"></div></div>
+        <div class="layui-tab-item" id="pane-ml">
+          <div class="ml-metrics" id="ml-metrics"></div>
+          <div class="ml-cm-title" data-i18n="ml_cm">Confusion Matrix</div>
+          <div class="ml-cm" id="ml-cm"></div>
+          <div class="echart-box" id="chart-mlcoef"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== 右侧详情抽屉 (保留自定义滑出) ======== -->
+  <aside class="detail-drawer" id="detail-drawer">
+    <button class="detail-close" id="detail-close">✕</button>
+    <div class="detail-head">
+      <div class="detail-name" id="detail-name">–</div>
+      <div class="detail-id muted" id="detail-id"></div>
+      <span class="detail-badge" id="detail-badge"></span>
+    </div>
+    <div class="detail-score-block">
+      <div class="detail-score-num" id="detail-score">–</div>
+      <div class="detail-score-label muted" data-i18n="popup_final">Fusion Score</div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title" data-i18n="popup_three">Score Decomposition</div>
+      <div id="detail-three"></div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title" data-i18n="popup_ci">95% CI</div>
+      <div class="ci-track"><div class="ci-range" id="detail-ci-range"></div><div class="ci-mid" id="detail-ci-mid"></div></div>
+      <div class="ci-label muted" id="detail-ci-label"></div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title" data-i18n="popup_radar">6-Dim Reef Profile</div>
+      <div class="radar-box" id="detail-radar"></div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title" data-i18n="detail_features">Features</div>
+      <div id="detail-features"></div>
+    </div>
+    <div class="detail-section reef-lab-section">
+      <button id="reef-lab-btn" class="layui-btn layui-btn-sm reef-lab-btn">🔬 <span data-i18n="reef_lab_btn">Enter Reef Lab</span></button>
+      <button id="report-export-btn" class="layui-btn layui-btn-sm layui-btn-normal" style="margin-left:6px;">📄 <span data-i18n="report_export_btn">Export Report</span></button>
+    </div>
+  </aside>
+
+  <!-- ======== 工作流节点详情 Modal (保留自定义) ======== -->
+  <div class="wf-modal hidden" id="wf-modal">
+    <div class="wf-modal-box">
+      <div class="wf-modal-head">
+        <h3 id="wf-modal-title"></h3>
+        <button class="wf-close" id="wf-close">✕</button>
+      </div>
+      <div class="wf-modal-body" id="wf-modal-body"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.staticfile.org/layui/2.9.16/layui.js"></script>
+<script src="/static/app.js?v=15"></script>
+</body>
+</html>

@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Model Panel · ReefTriage</title>
+<link rel="stylesheet" href="https://cdn.staticfile.org/layui/2.9.16/css/layui.css" />
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+  :root{
+    --bg:#0a1628; --panel:rgba(13,27,42,0.85); --primary:#00d4ff;
+    --invest:#10b981; --monitor:#f59e0b; --deprior:#6b7280;
+    --text:#e2e8f0; --muted:#94a3b8; --border:rgba(0,212,255,0.15);
+  }
+  body{margin:0;background:var(--bg);color:var(--text);padding:16px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+  h2{color:var(--primary);font-size:18px;margin:0 0 14px;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:900px){.grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:10px;
+    padding:14px;backdrop-filter:blur(12px);}
+  .card h3{color:var(--primary);font-size:14px;margin:0 0 10px;font-weight:600;}
+  .chart{width:100%;height:260px;min-height:200px;}
+  /* workflow */
+  .wf{display:flex;align-items:center;justify-content:space-around;margin-top:20px;}
+  .wf-node{text-align:center;}
+  .wf-icon{font-size:28px;}
+  .wf-label{font-size:11px;color:var(--muted);margin-top:4px;}
+  .wf-arrow{color:var(--primary);font-size:22px;}
+  /* ml metrics */
+  .metric-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;}
+  .metric{flex:1;min-width:90px;background:rgba(0,212,255,.06);border:1px solid var(--border);
+    border-radius:6px;padding:8px;text-align:center;}
+  .metric .v{font-size:18px;color:var(--primary);font-weight:700;}
+  .metric .k{font-size:11px;color:var(--muted);margin-top:2px;}
+  .backtest-box{font-size:12px;color:var(--muted);line-height:1.7;}
+  .backtest-box b{color:var(--text);}
+
+  /* feature contribution panel */
+  .wide{grid-column:1 / -1;}
+  .feat-layout{display:flex;gap:16px;align-items:stretch;}
+  .feat-left{flex:0 0 290px;display:flex;flex-direction:column;gap:10px;}
+  .feat-right{flex:1;min-width:0;}
+  @media(max-width:900px){.feat-layout{flex-direction:column;}}
+  .feat-left select{width:100%;background:rgba(10,22,40,0.9);color:var(--text);
+    border:1px solid var(--border);border-radius:6px;padding:8px;font-size:13px;outline:none;}
+  .feat-left select:focus{border-color:var(--primary);}
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .info-cell{background:rgba(0,212,255,.06);border:1px solid var(--border);border-radius:6px;padding:8px;}
+  .info-cell .v{font-size:16px;color:var(--primary);font-weight:700;}
+  .info-cell .k{font-size:11px;color:var(--muted);margin-top:2px;}
+  .feat-note{font-size:11px;color:var(--muted);line-height:1.7;}
+  .feat-note b{color:var(--text);}
+  .choice-badge{display:inline-block;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:600;}
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:rgba(13,27,42,0.5);border-radius:3px;}
+  ::-webkit-scrollbar-thumb{background:rgba(0,212,255,0.4);border-radius:3px;}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(0,212,255,0.7);}
+  ::-webkit-scrollbar-corner{background:rgba(13,27,42,0.5);}
+  *{scrollbar-width:thin;scrollbar-color:rgba(0,212,255,0.4) rgba(13,27,42,0.5);}
+  body{overflow-x:hidden;overflow-y:auto;}
+</style>
+</head>
+<body>
+<h2>🧮 <span data-i18n="title">Model Panel</span></h2>
+
+<div class="grid">
+
+  <!-- 1. Workflow -->
+  <div class="card">
+    <h3 data-i18n="wf">3-Layer Decision Workflow</h3>
+    <div class="wf">
+      <div class="wf-node"><div class="wf-icon">🧬</div><div class="wf-label" data-i18n="wf1">12-Dim Features</div></div>
+      <div class="wf-arrow">›</div>
+      <div class="wf-node"><div class="wf-icon">🤖</div><div class="wf-label" data-i18n="wf2">ML Augment</div></div>
+      <div class="wf-arrow">›</div>
+      <div class="wf-node"><div class="wf-icon">⚖️</div><div class="wf-label" data-i18n="wf3">Fusion α</div></div>
+      <div class="wf-arrow">›</div>
+      <div class="wf-node"><div class="wf-icon">🎯</div><div class="wf-label" data-i18n="wf4">Decision</div></div>
+    </div>
+    <div style="margin-top:18px;font-size:12px;color:var(--muted);line-height:1.7">
+      <div>· <span data-i18n="d1">Layer A — Entropy-weight TOPSIS on 12 biophysical features</span></div>
+      <div>· <span data-i18n="d2">Layer B — Integer-programming budget optimizer with connectivity amplifier</span></div>
+      <div>· <span data-i18n="d3">Layer C — Logistic-regression bleaching probability fused at α=0.30</span></div>
+    </div>
+  </div>
+
+  <!-- 2. Weights -->
+  <div class="card">
+    <h3 data-i18n="w_title">Feature Weights (Entropy Method)</h3>
+    <div class="chart" id="chart-weights"></div>
+  </div>
+
+  <!-- 3. Compare scatter -->
+  <div class="card">
+    <h3 data-i18n="c_title">Old vs New Model Score</h3>
+    <div class="chart" id="chart-compare"></div>
+  </div>
+
+  <!-- 4. ML info + backtest -->
+  <div class="card">
+    <h3 data-i18n="ml_title">ML Model & Backtest</h3>
+    <div class="metric-row" id="ml-metrics"></div>
+    <div class="backtest-box" id="backtest-box">—</div>
+  </div>
+
+  <!-- 5. Feature Contribution (wide, spans 2 cols) -->
+  <div class="card wide">
+    <h3 data-i18n="fc_title">Feature Contribution / 特征贡献度</h3>
+    <div class="feat-layout">
+      <div class="feat-left">
+        <select id="fc-seg-select"></select>
+        <div id="fc-info"></div>
+        <div class="feat-note" data-i18n="fc_note">
+          MCDM 客观贡献（30%）+ Laya AI 判断（70%）。<br>
+          以中性基准 <b>50</b> 起算：<b style="color:#00d4ff">青柱</b>=特征高于中性、推高优先级；
+          <b style="color:#f59e0b">琥珀柱</b>=低于中性、拉低优先级；
+          <b style="color:#10b981">绿柱</b>=Laya AI；<b style="color:#94a3b8">灰柱</b>=TOPSIS 非线性残差。
+        </div>
+      </div>
+      <div class="feat-right">
+        <div class="chart" id="chart-contribution" style="height:360px;"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.staticfile.org/layui/2.9.16/layui.js"></script>
+<script>
+var I18N = {
+  en: {title:'Model Panel', wf:'3-Layer Decision Workflow',
+       wf1:'12-Dim Features', wf2:'ML Augment', wf3:'Fusion α', wf4:'Decision',
+       d1:'Layer A — Entropy-weight TOPSIS on 12 biophysical features',
+       d2:'Layer B — Integer-programming budget optimizer with connectivity amplifier',
+       d3:'Layer C — Logistic-regression bleaching probability fused at α=0.30',
+       w_title:'Feature Weights (Entropy Method)',
+       c_title:'Old vs New Model Score',
+       ml_title:'ML Model & Backtest',
+       fc_title:'Feature Contribution / 特征贡献度'},
+  zh: {title:'模型面板', wf:'三层决策工作流',
+       wf1:'12维特征', wf2:'ML 增强', wf3:'融合 α', wf4:'决策',
+       d1:'A层 — 12个生物物理特征的熵权 TOPSIS',
+       d2:'B层 — 带连通性放大的整数规划预算优化器',
+       d3:'C层 — 逻辑回归白化概率，α=0.30 融合',
+       w_title:'特征权重（熵权法）',
+       c_title:'新旧模型评分对比',
+       ml_title:'ML 模型与回测'}
+};
+var lang = localStorage.getItem('reeftriage_lang') || 'en';
+function t(k){ return I18N[lang][k] || k; }
+function applyLang(){
+  document.querySelectorAll('[data-i18n]').forEach(function(el){
+    var k = el.getAttribute('data-i18n');
+    if(I18N[lang][k]) el.textContent = I18N[lang][k];
+  });
+}
+
+var charts = {};
+var axisStyle = {axisLabel:{color:'#94a3b8',fontSize:10}, axisLine:{lineStyle:{color:'rgba(0,212,255,0.2)'}}};
+applyLang();
+
+// weights
+fetch('/api/model/weights').then(function(r){return r.json();}).then(function(data){
+  var w = data.weights || {};
+  var keys = Object.keys(w).sort(function(a,b){return w[a]-w[b];});
+  var vals = keys.map(function(k){return +(w[k]*100).toFixed(1);});
+  var c = echarts.init(document.getElementById('chart-weights'));
+  charts.weights = c;
+  c.setOption({
+    grid:{left:130,right:30,top:10,bottom:20},
+    xAxis:{type:'value', ...axisStyle},
+    yAxis:{type:'category', data:keys, ...axisStyle},
+    series:[{type:'bar', data:vals, itemStyle:{color:'#00d4ff'},
+      label:{show:true, position:'right', color:'#7dd3fc', fontSize:10, formatter:'{c}%'}}]
+  });
+});
+
+// compare
+fetch('/api/model/compare').then(function(r){return r.json();}).then(function(data){
+  var old = (data.old_model||{}).scores||[];
+  var nw = (data.new_model||{}).scores||[];
+  var pts = old.map(function(o,i){return [o, nw[i]];});
+  var c = echarts.init(document.getElementById('chart-compare'));
+  charts.compare = c;
+  c.setOption({
+    grid:{left:40,right:20,top:20,bottom:30},
+    xAxis:{type:'value', name:'Old', nameTextStyle:{color:'#94a3b8'}, ...axisStyle},
+    yAxis:{type:'value', name:'New', nameTextStyle:{color:'#94a3b8'}, ...axisStyle},
+    series:[{type:'scatter', data:pts, symbolSize:8,
+      itemStyle:{color:'#00d4ff', opacity:.7}}]
+  });
+});
+
+// ml-info
+fetch('/api/model/ml-info').then(function(r){return r.json();}).then(function(data){
+  var box = document.getElementById('ml-metrics');
+  var m = data.metrics || {};
+  var items = [
+    {k:'Status', v:data.status==='trained'?'✓ trained':'—'},
+    {k:'AUC', v:m.auc!=null?m.auc.toFixed(3):'—'},
+    {k:'Accuracy', v:m.accuracy!=null?m.accuracy.toFixed(3):'—'},
+    {k:'Precision', v:m.precision!=null?m.precision.toFixed(3):'—'},
+    {k:'Recall', v:m.recall!=null?m.recall.toFixed(3):'—'}
+  ];
+  box.innerHTML = items.map(function(it){
+    return '<div class="metric"><div class="v">'+it.v+'</div><div class="k">'+it.k+'</div></div>';
+  }).join('');
+});
+
+// backtest
+fetch('/api/model/backtest').then(function(r){return r.json();}).then(function(data){
+  var box = document.getElementById('backtest-box');
+  if(data.error){ box.textContent = '⚠ ' + data.error; return; }
+  var auc = (data.roc_threshold && data.roc_threshold.merged_auc) || data.auc || '—';
+  var thr = (data.roc_threshold && data.roc_threshold.youden && data.roc_threshold.youden.threshold) || data.optimal_threshold || '—';
+  var alpha = (data.walk_forward && data.walk_forward.final_alpha) || data.alpha || '—';
+  var rows = '';
+  if(typeof auc === 'number') rows += 'AUC: <b>'+auc.toFixed(3)+'</b><br>';
+  if(typeof thr !== 'undefined' && thr !== '—') rows += (lang==='zh'?'最优阈值':'Optimal threshold')+': <b>'+thr+'</b><br>';
+  rows += (lang==='zh'?'融合 α':'Fusion α')+': <b>'+alpha+'</b><br>';
+  rows += '<span style="color:#64748b">'+(lang==='zh'?'完整 ROC/消融见 backtest_results.json':'Full ROC/ablation in backtest_results.json')+'</span>';
+  box.innerHTML = rows;
+});
+
+// ---------------------------------------------------------------------------
+// Feature Contribution panel (waterfall)
+// ---------------------------------------------------------------------------
+var fcChart = null;
+
+function fcCell(k, v){
+  return '<div class="info-cell"><div class="v">'+v+'</div><div class="k">'+k+'</div></div>';
+}
+
+function fcLoadInfo(d){
+  var choiceColor = {invest:'#10b981', monitor:'#f59e0b', deprioritize:'#6b7280'};
+  var chLabel = {invest:'Invest', monitor:'Monitor', deprioritize:'Deprioritize'}[d.choice] || d.choice;
+  var chLabelZh = {invest:'优先恢复', monitor:'监测', deprioritize:'降级'}[d.choice] || d.choice;
+  document.getElementById('fc-info').innerHTML =
+    '<div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">' +
+      (lang==='zh' ? (d.name_zh||d.name) : d.name) +
+    '</div>' +
+    '<div class="info-grid">' +
+      fcCell(lang==='zh'?'最终总分':'Final', d.total) +
+      fcCell(lang==='zh'?'MCDM (30%)':'MCDM (30%)', d.mcdm_score) +
+      fcCell(lang==='zh'?'Laya (70%)':'Laya (70%)', d.laya_score) +
+      fcCell('α', d.alpha) +
+    '</div>' +
+    '<div style="margin-top:8px;"><span class="choice-badge" style="background:'+choiceColor[d.choice]+'33;color:'+choiceColor[d.choice]+'">' +
+      (lang==='zh'?chLabelZh:chLabel) + '</span></div>';
+}
+
+function fcRender(d){
+  var cats = [], helper = [], vals = [], colors = [], signed = [];
+  var running = 0;
+  function step(label, value, color){
+    cats.push(label); signed.push(value);
+    if(value >= 0){ helper.push(running); vals.push(value); running += value; }
+    else { helper.push(running + value); vals.push(-value); running += value; }
+    colors.push(color);
+  }
+  // neutral baseline
+  cats.push(lang==='zh' ? '基准中性分' : 'Neutral baseline');
+  helper.push(0); vals.push(d.baseline); colors.push('#475569'); signed.push(d.baseline); running = d.baseline;
+  // 12 features
+  d.features.forEach(function(f){
+    step(f.label, f.contribution, f.contribution >= 0 ? '#00d4ff' : '#f59e0b');
+  });
+  // laya AI layer
+  step(lang==='zh' ? 'Laya AI 判断(70%)' : 'Laya AI (70%)', d.laya_contribution, '#10b981');
+  // residual (TOPSIS nonlinearity)
+  step(lang==='zh' ? '模型校准残差' : 'Calibration residual', d.residual, '#64748b');
+  // total
+  cats.push(lang==='zh' ? '最终总分' : 'Final score');
+  helper.push(0); vals.push(d.total); colors.push('#e2e8f0'); signed.push(d.total);
+
+  if(!fcChart){
+    fcChart = echarts.init(document.getElementById('chart-contribution'));
+    charts.contribution = fcChart;
+  }
+  fcChart.setOption({
+    grid:{left:48, right:20, top:30, bottom:95},
+    legend:{show:false},
+    tooltip:{trigger:'axis', axisPointer:{type:'shadow'},
+      formatter:function(p){
+        var i = p[0].dataIndex;
+        var v = signed[i];
+        var sign = v >= 0 ? '+' : '';
+        return cats[i] + '<br/>' + (lang==='zh'?'贡献':'Contribution') + ': <b>' + sign + v.toFixed(2) + '</b>';
+      }},
+    xAxis:{type:'category', data:cats,
+      axisLabel:{rotate:38, color:'#94a3b8', fontSize:10, interval:0},
+      axisLine:{lineStyle:{color:'rgba(0,212,255,0.2)'}}},
+    yAxis:{type:'value', name:lang==='zh'?'分数':'Score',
+      nameTextStyle:{color:'#94a3b8'}, ...axisStyle},
+    series:[
+      {name:'h', type:'bar', stack:'w', data:helper,
+        itemStyle:{color:'transparent'}, emphasis:{itemStyle:{color:'transparent'}}, silent:true},
+      {name:'v', type:'bar', stack:'w', barWidth:'60%',
+        data:vals.map(function(v,i){ return {value:v, itemStyle:{color:colors[i]}}; }),
+        label:{show:true, position:'top', color:'#7dd3fc', fontSize:9,
+          formatter:function(p){ var v = signed[p.dataIndex]; return (v>=0?'+':'') + v.toFixed(1); }}}
+    ]
+  }, true);
+}
+
+function fcLoad(sid){
+  fetch('/api/model/feature-contribution?segment_id=' + encodeURIComponent(sid))
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(d.error){ return; }
+      fcLoadInfo(d);
+      fcRender(d);
+    });
+}
+
+function fcInit(){
+  fetch('/api/segments').then(function(r){ return r.json(); }).then(function(data){
+    var segs = data.segments || [];
+    var sel = document.getElementById('fc-seg-select');
+    sel.innerHTML = segs.map(function(s){
+      var nm = lang==='zh' ? (s.name_zh || s.name) : s.name;
+      return '<option value="'+s.segment_id+'">'+s.segment_id+' · '+nm+' ('+s.score+')</option>';
+    }).join('');
+    sel.onchange = function(){ fcLoad(sel.value); };
+    fcLoad(segs[0].segment_id);   // default: highest score
+  });
+}
+fcInit();
+
+window.addEventListener('resize', function(){
+  Object.keys(charts).forEach(function(k){ try{charts[k].resize();}catch(e){} });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ReefTriage 报告中心 / Report Center</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --cyan:#00d4ff; --invest:#10b981; --monitor:#f59e0b; --deprior:#6b7280;
+    --ink:#1a2332; --muted:#64748b; --line:#e2e8f0; --paper:#ffffff;
+    --toolbar-bg:#0a1628; --toolbar-text:#e2e8f0;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:#eef2f7;color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+
+  /* ===== 6px cyan scrollbar ===== */
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:rgba(13,27,42,0.4);border-radius:3px;}
+  ::-webkit-scrollbar-thumb{background:rgba(0,212,255,0.5);border-radius:3px;}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(0,212,255,0.8);}
+  *{scrollbar-width:thin;scrollbar-color:rgba(0,212,255,0.5) rgba(13,27,42,0.4);}
+
+  /* ===== Top toolbar (dark tech) ===== */
+  .toolbar{position:sticky;top:0;z-index:100;background:linear-gradient(90deg,#0a1628,#0f2540);
+    color:var(--toolbar-text);padding:10px 20px;display:flex;align-items:center;gap:12px;
+    box-shadow:0 2px 12px rgba(0,0,0,.3);border-bottom:1px solid rgba(0,212,255,.2);}
+  .toolbar .brand{font-size:15px;font-weight:600;color:var(--cyan);letter-spacing:1px;}
+  .toolbar .spacer{flex:1;}
+  .toolbar .meta{font-size:12px;color:#94a3b8;}
+  .tbtn{background:rgba(0,212,255,.12);border:1px solid rgba(0,212,255,.4);color:var(--cyan);
+    border-radius:4px;padding:6px 14px;cursor:pointer;font-size:13px;transition:all .15s;}
+  .tbtn:hover{background:rgba(0,212,255,.25);box-shadow:0 0 8px rgba(0,212,255,.4);}
+  .tbtn.primary{background:var(--cyan);color:#0a1628;font-weight:600;}
+
+  /* ===== Paper (A4 width, white) ===== */
+  .paper-wrap{display:flex;justify-content:center;padding:24px 12px;}
+  .paper{width:210mm;min-height:297mm;background:var(--paper);color:var(--ink);
+    padding:18mm 16mm;box-shadow:0 4px 24px rgba(0,0,0,.12);}
+
+  .report-header{border-bottom:3px solid var(--cyan);padding-bottom:14px;margin-bottom:18px;}
+  .report-header h1{margin:0;font-size:22px;color:#0a1628;}
+  .report-header .sub{color:var(--muted);font-size:12px;margin-top:4px;}
+  .report-header .badge{display:inline-block;padding:3px 12px;border-radius:12px;
+    font-size:12px;font-weight:600;color:#fff;margin-left:8px;vertical-align:middle;}
+
+  h2.sec{font-size:15px;color:#0a1628;border-left:4px solid var(--cyan);
+    padding-left:10px;margin:22px 0 10px;}
+  h2.sec .en{color:var(--muted);font-weight:400;font-size:12px;margin-left:6px;}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .card{border:1px solid var(--line);border-radius:6px;padding:12px 14px;background:#fafbfd;}
+  .card .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+  .card .v{font-size:20px;font-weight:600;color:#0a1628;margin-top:2px;}
+  .card .v small{font-size:12px;color:var(--muted);font-weight:400;}
+
+  table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px;}
+  table.tbl th, table.tbl td{border:1px solid var(--line);padding:6px 10px;text-align:left;}
+  table.tbl th{background:#f1f5f9;color:#0a1628;font-weight:600;}
+  table.tbl td.num{text-align:right;font-variant-numeric:tabular-nums;}
+
+  .chart{width:100%;height:260px;margin-top:8px;}
+  .chart-tall{height:300px;}
+
+  .rec-box{background:linear-gradient(135deg,#ecfeff,#f0f9ff);border-left:4px solid var(--cyan);
+    padding:12px 16px;border-radius:4px;margin-top:8px;font-size:13px;line-height:1.6;}
+  .rec-box .zh{display:block;margin-top:6px;color:#334155;}
+  .src-note{font-size:10.5px;color:var(--muted);line-height:1.5;margin-top:18px;
+    border-top:1px dashed var(--line);padding-top:10px;}
+
+  .empty{padding:60px 20px;text-align:center;color:var(--muted);}
+  .empty h2{color:#0a1628;}
+  .empty .hint{max-width:520px;margin:14px auto;line-height:1.7;font-size:13px;}
+
+  /* ===== Print ===== */
+  @media print{
+    body{background:#fff;}
+    .toolbar{display:none !important;}
+    .paper-wrap{padding:0;}
+    .paper{width:auto;min-height:auto;box-shadow:none;padding:0;margin:0;}
+    .chart{break-inside:avoid;}
+    h2.sec{break-after:avoid;}
+    .card{break-inside:avoid;}
+    @page{size:A4;margin:14mm;}
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="brand">🪸 ReefTriage Report Center</div>
+  <div class="meta" id="meta-line">—</div>
+  <div class="spacer"></div>
+  <button class="tbtn" id="lang-btn">EN / 中</button>
+  <button class="tbtn" onclick="window.print()">🖨️ <span data-i18n="print">打印</span></button>
+  <button class="tbtn primary" id="pdf-btn">⬇ <span data-i18n="pdf">导出 PDF</span></button>
+</div>
+
+<div class="paper-wrap">
+  <div class="paper" id="paper">
+    <!-- 内容由 JS 渲染 -->
+    <div class="empty" id="empty-state">
+      <h2 id="empty-title">📄 报告中心 / Report Center</h2>
+      <div class="hint" id="empty-hint">
+        从地图详情抽屉或 Reef Lab 点击「导出报告」按钮进入本页。<br/>
+        URL 参数: ?segment=R01 (单礁段) 或 ?segments=R01,R02,R03 (区域汇总)。
+      </div>
+    </div>
+    <div id="report-body" style="display:none;"></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+// ---------- i18n ----------
+const I18N = {
+  zh: {
+    print:"打印", pdf:"导出 PDF",
+    title:"ReefTriage 礁段恢复优先级报告",
+    subTitle:"Semporna Reef Restoration Triage Report",
+    basicInfo:"基本信息", basicInfoEn:"Basic Information",
+    scoringDetail:"评分明细 (三层融合模型)", scoringDetailEn:"Scoring Detail (3-Layer Fusion)",
+    env:"物理化学环境", envEn:"Physical & Chemical Environment",
+    monitoring:"白化监测与 RHI", monitoringEn:"Bleaching Monitoring & RHI",
+    restoration:"修复成本核算", restorationEn:"Restoration Cost",
+    action:"建议行动", actionEn:"Recommended Action",
+    source:"数据来源声明", sourceEn:"Data Sources",
+    regionSummary:"区域汇总", regionSummaryEn:"Regional Summary",
+    segments:"礁段清单", segmentsEn:"Segment List",
+    mcdm:"客观分 (MCDM/熵权TOPSIS)", laya:"AI分 (Laya 规则引擎)", final:"融合分 (Final)",
+    bleachingProb:"白化概率", ci:"95% 置信区间", alpha:"融合权重 α",
+    weight:"特征权重",
+    sst:"平均海表温度", dhw:"历史最大 DHW", ph:"pH", do:"溶解氧",
+    salinity:"盐度", chl:"叶绿素 a",
+    method:"修复方法", area:"面积", totalCost:"总成本", perCoral:"单株成本", survival:"存活率",
+    score:"评分", choice:"分级", rhi:"RHI",
+    loading:"加载中…", error:"加载失败",
+    rhiRadar:"RHI 八维雷达", coverTrend:"硬珊瑚覆盖度趋势",
+    bleachingEvents:"历史白化事件",
+    regRec:"区域建议",
+  },
+  en: {
+    print:"Print", pdf:"Export PDF",
+    title:"ReefTriage Reef Restoration Priority Report",
+    subTitle:"Semporna Reef Restoration Triage Report",
+    basicInfo:"Basic Information", basicInfoEn:"",
+    scoringDetail:"Scoring Detail (3-Layer Fusion)", scoringDetailEn:"",
+    env:"Physical & Chemical Environment", envEn:"",
+    monitoring:"Bleaching Monitoring & RHI", monitoringEn:"",
+    restoration:"Restoration Cost", restorationEn:"",
+    action:"Recommended Action", actionEn:"",
+    source:"Data Sources", sourceEn:"",
+    regionSummary:"Regional Summary", regionSummaryEn:"",
+    segments:"Segment List", segmentsEn:"",
+    mcdm:"MCDM (Entropy-TOPSIS, obj.)", laya:"Laya AI (rubric)", final:"Fusion Score",
+    bleachingProb:"Bleaching Probability", ci:"95% Confidence Interval", alpha:"Fusion α",
+    weight:"Feature Weights",
+    sst:"Mean SST", dhw:"Max Historical DHW", ph:"pH", do:"Dissolved O₂",
+    salinity:"Salinity", chl:"Chlorophyll-a",
+    method:"Method", area:"Area", totalCost:"Total Cost", perCoral:"Cost / Coral", survival:"Survival Rate",
+    score:"Score", choice:"Class", rhi:"RHI",
+    loading:"Loading…", error:"Failed to load",
+    rhiRadar:"RHI 8-Dim Radar", coverTrend:"Hard Coral Cover Trend",
+    bleachingEvents:"Historical Bleaching Events",
+    regRec:"Regional Recommendation",
+  }
+};
+let lang = localStorage.getItem("reeftriage_lang") || "zh";
+function t(k){ return (I18N[lang] && I18N[lang][k]) || k; }
+function setLang(l){ lang = l; try{localStorage.setItem("reeftriage_lang", l);}catch(e){}
+  document.querySelectorAll("[data-i18n]").forEach(el=>{ el.textContent = t(el.getAttribute("data-i18n")); });
+  render();
+}
+document.getElementById("lang-btn").addEventListener("click", ()=> setLang(lang==="zh"?"en":"zh"));
+
+// ---------- URL params ----------
+const params = new URLSearchParams(location.search);
+const segSingle = params.get("segment");
+const segMulti = params.get("segments");
+
+// ---------- helpers ----------
+const $ = id => document.getElementById(id);
+function fmt(v, d=1){ if(v==null||isNaN(v)) return "—"; return Number(v).toFixed(d); }
+function pct(v){ return v==null?"—":(v*100).toFixed(1)+"%"; }
+function choiceColor(c){ return c==="invest"?"#10b981":(c==="monitor"?"#f59e0b":"#6b7280"); }
+function choiceLabel(c){ return lang==="zh"
+  ? ({invest:"优先投入",monitor:"加强监测",deprioritize:"降级"}[c]||c)
+  : ({invest:"INVEST",monitor:"MONITOR",deprioritize:"DEPRIORITIZE"}[c]||c); }
+
+let currentData = null;     // single-segment report
+let currentRegion = null;   // region report
+const charts = {};
+
+function destroyCharts(){ Object.values(charts).forEach(c=>{try{c.dispose();}catch(e){}}); for(const k in charts) delete charts[k]; }
+
+// ---------- render ----------
+async function loadSingle(sid){
+  const r = await fetch(`/api/segments/${encodeURIComponent(sid)}/report`);
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  return r.json();
+}
+async function loadRegion(ids){
+  const r = await fetch(`/api/region/report?segment_ids=${encodeURIComponent(ids.join(","))}`);
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  return r.json();
+}
+
+async function render(){
+  destroyCharts();
+  $("empty-state").style.display = (segSingle || segMulti) ? "none" : "block";
+  $("report-body").style.display = (segSingle || segMulti) ? "block" : "none";
+  $("meta-line").textContent = segSingle ? `#${segSingle}` : (segMulti ? `区域 / Region: ${segMulti}` : "");
+
+  if(!segSingle && !segMulti){ return; }
+
+  try{
+    if(segSingle){
+      currentData = await loadSingle(segSingle);
+      currentRegion = null;
+      renderSingle(currentData);
+    } else {
+      const ids = segMulti.split(",").map(s=>s.trim()).filter(Boolean);
+      currentRegion = await loadRegion(ids);
+      currentData = null;
+      renderRegion(currentRegion);
+    }
+  }catch(e){
+    $("report-body").innerHTML = `<div class="empty"><h2>${t("error")}</h2><p>${e.message}</p></div>`;
+  }
+}
+
+function renderSingle(d){
+  const s = d.scoring, env = d.environment, mon = d.monitoring, rst = d.restoration, bi = d.basic_info;
+  const rhiComps = mon.rhi_components || {};
+  const ci = s.confidence_interval || [null,null];
+
+  let html = `
+    <div class="report-header">
+      <h1>${lang==="zh"?d.name_zh:d.name}
+        <span class="badge" style="background:${choiceColor(s.choice)}">${choiceLabel(s.choice)}</span>
+      </h1>
+      <div class="sub">${t("title")} · ${d.segment_id} · ${d.generated_at}</div>
+    </div>
+
+    <h2 class="sec">📍 ${t("basicInfo")}<span class="en">${t("basicInfoEn")}</span></h2>
+    <div class="grid3">
+      <div class="card"><div class="k">Latitude / 纬度</div><div class="v">${fmt(bi.lat,5)} <small>°N</small></div></div>
+      <div class="card"><div class="k">Longitude / 经度</div><div class="v">${fmt(bi.lon,5)} <small>°E</small></div></div>
+      <div class="card"><div class="k">Mean Depth / 平均水深</div><div class="v">${fmt(bi.mean_depth)} <small>m</small></div></div>
+      <div class="card"><div class="k">Reef Area / 礁体面积</div><div class="v">${fmt(bi.reef_area,3)} <small>km²</small></div></div>
+      <div class="card"><div class="k">Group / 分组</div><div class="v" style="font-size:14px">${bi.group||"—"}</div></div>
+      <div class="card"><div class="k">Generated / 生成时间</div><div class="v" style="font-size:14px">${d.generated_at}</div></div>
+    </div>
+
+    <h2 class="sec">🧮 ${t("scoringDetail")}</h2>
+    <div class="grid3">
+      <div class="card" style="border-top:3px solid #00d4ff"><div class="k">${t("mcdm")}</div><div class="v">${fmt(s.mcdm_score)}</div></div>
+      <div class="card" style="border-top:3px solid #f59e0b"><div class="k">${t("laya")}</div><div class="v">${fmt(s.laya_score)}</div></div>
+      <div class="card" style="border-top:3px solid #10b981"><div class="k">${t("final")}</div><div class="v">${fmt(s.final_score)}</div></div>
+      <div class="card"><div class="k">${t("bleachingProb")}</div><div class="v">${pct(s.bleaching_probability)}</div></div>
+      <div class="card"><div class="k">${t("ci")}</div><div class="v" style="font-size:16px">[${fmt(ci[0])}, ${fmt(ci[1])}]</div></div>
+      <div class="card"><div class="k">${t("alpha")}</div><div class="v">α = ${fmt(s.alpha,2)}</div></div>
+    </div>
+    <div class="chart" id="chart-score"></div>
+    <h2 class="sec" style="margin-top:6px">⚖️ ${t("weight")}</h2>
+    <div class="chart" id="chart-weights" style="height:220px"></div>
+
+    <h2 class="sec">🌡️ ${t("env")}</h2>
+    <div class="grid3">
+      <div class="card"><div class="k">${t("sst")}</div><div class="v">${fmt(env.sst_mean,2)} <small>°C</small></div></div>
+      <div class="card"><div class="k">${t("dhw")}</div><div class="v">${fmt(env.dhw_max,2)} <small>°C·wk</small></div></div>
+      <div class="card"><div class="k">${t("ph")}</div><div class="v">${fmt(env.ph,2)}</div></div>
+      <div class="card"><div class="k">${t("do")}</div><div class="v">${fmt(env.do,1)} <small>ml/L</small></div></div>
+      <div class="card"><div class="k">${t("salinity")}</div><div class="v">${fmt(env.salinity,1)} <small>PSU</small></div></div>
+      <div class="card"><div class="k">${t("chl")}</div><div class="v">${fmt(env.chlorophyll,2)} <small>mg/m³</small></div></div>
+    </div>
+    <div class="chart" id="chart-dhw" style="height:220px"></div>
+
+    <h2 class="sec">🪸 ${t("monitoring")}</h2>
+    <div class="grid2">
+      <div class="chart chart-tall" id="chart-rhi"></div>
+      <div>
+        <div class="card" style="margin-bottom:10px"><div class="k">RHI Score</div><div class="v">${fmt(mon.rhi_score)}</div></div>
+        <table class="tbl"><thead><tr><th>Component</th><th style="text-align:right">Score</th></tr></thead><tbody>
+          ${Object.entries(rhiComps).map(([k,v])=>`<tr><td>${k}</td><td class="num">${fmt(v,1)}</td></tr>`).join("")}
+        </tbody></table>
+      </div>
+    </div>
+    <div class="chart" id="chart-cover" style="height:220px"></div>
+    <h2 class="sec" style="margin-top:6px">📌 ${t("bleachingEvents")}</h2>
+    <table class="tbl"><thead><tr><th>Year</th><th>Severity</th><th style="text-align:right">DHW</th><th>Note</th></tr></thead><tbody>
+      ${(mon.bleaching_events||[]).map(e=>`<tr><td>${e.year}</td><td>${e.severity||""}</td><td class="num">${fmt(e.dhw,1)}</td><td style="font-size:11px;color:var(--muted)">${e.note||""}</td></tr>`).join("")||"<tr><td colspan=4>—</td></tr>"}
+    </tbody></table>
+
+    <h2 class="sec">💰 ${t("restoration")}</h2>
+    <div class="grid3">
+      <div class="card"><div class="k">${t("method")}</div><div class="v" style="font-size:14px">${rst.method}</div></div>
+      <div class="card"><div class="k">${t("area")}</div><div class="v">${fmt(rst.area_m2,0)} <small>m²</small></div></div>
+      <div class="card"><div class="k">${t("totalCost")}</div><div class="v">$${fmt(rst.total_cost,0)}</div></div>
+      <div class="card"><div class="k">${t("perCoral")}</div><div class="v">$${fmt(rst.cost_per_coral,2)}</div></div>
+      <div class="card"><div class="k">${t("survival")}</div><div class="v">${pct(rst.survival_rate)}</div></div>
+      <div class="card"><div class="k">Coral Density / 密度</div><div class="v">${fmt(rst.coral_density,0)} <small>/m²</small></div></div>
+    </div>
+
+    <h2 class="sec">✅ ${t("action")}</h2>
+    <div class="rec-box">
+      <div>${lang==="zh"?d.recommendation_zh:d.recommendation}</div>
+      <span class="zh">${lang==="zh"?d.recommendation:d.recommendation_zh}</span>
+    </div>
+
+    <div class="src-note">
+      <b>${t("source")}:</b> SST/DHW: NOAA CRW v3.1 + literature (${env.data_source});
+      RHI/cover trend: literature-anchored (${mon.data_source});
+      Restoration cost: admin-editable plan (updated ${rst.last_updated||"—"}).
+      Generated by ReefTriage fusion_v2 (MCDM α=${fmt(s.alpha,2)} + Laya rubric + ML bleaching predictor + Bayesian CI).
+    </div>
+  `;
+  $("report-body").innerHTML = html;
+
+  // charts
+  setTimeout(()=>drawSingleCharts(d), 60);
+}
+
+function drawSingleCharts(d){
+  const s = d.scoring, env = d.environment, mon = d.monitoring;
+
+  // score bar
+  const c1 = echarts.init($("chart-score")); charts["score"]=c1;
+  c1.setOption({
+    title:{text:t("scoringDetail"), left:"center", textStyle:{fontSize:13}},
+    grid:{left:60,right:20,top:40,bottom:20},
+    xAxis:{type:"value",max:100},
+    yAxis:{type:"category",data:[t("final"),t("laya"),t("mcdm")]},
+    series:[{type:"bar",data:[
+      {value:s.final_score,itemStyle:{color:"#10b981"}},
+      {value:s.laya_score,itemStyle:{color:"#f59e0b"}},
+      {value:s.mcdm_score,itemStyle:{color:"#00d4ff"}},
+    ],label:{show:true,position:"right",formatter:"{c}"}}]
+  });
+
+  // feature weights
+  const fw = s.feature_weights || {};
+  const wKeys = Object.keys(fw);
+  if(wKeys.length){
+    const c2 = echarts.init($("chart-weights")); charts["weights"]=c2;
+    c2.setOption({
+      grid:{left:140,right:30,top:20,bottom:20},
+      xAxis:{type:"value"},
+      yAxis:{type:"category",data:wKeys.slice().reverse(),axisLabel:{fontSize:10}},
+      series:[{type:"bar",data:wKeys.map(k=>fw[k]).reverse(),itemStyle:{color:"#00d4ff"}}]
+    });
+  }
+
+  // DHW history
+  const dhw = env.dhw_history || [];
+  if(dhw.length){
+    const c3 = echarts.init($("chart-dhw")); charts["dhw"]=c3;
+    c3.setOption({
+      title:{text:"DHW History (NOAA CRW)",left:"center",textStyle:{fontSize:12}},
+      grid:{left:40,right:20,top:30,bottom:40},
+      tooltip:{trigger:"axis"},
+      xAxis:{type:"category",data:dhw.map(h=>h.date),axisLabel:{rotate:45,fontSize:9}},
+      yAxis:{type:"value",name:"DHW"},
+      series:[{type:"line",data:dhw.map(h=>h.dhw),areaStyle:{color:"rgba(245,158,11,.3)"},lineStyle:{color:"#f59e0b"},itemStyle:{color:"#f59e0b"}}]
+    });
+  }
+
+  // RHI radar
+  const rc = mon.rhi_components || {};
+  const c4 = echarts.init($("chart-rhi")); charts["rhi"]=c4;
+  c4.setOption({
+    title:{text:t("rhiRadar"),left:"center",textStyle:{fontSize:12}},
+    radar:{indicator:Object.keys(rc).map(k=>({name:k,max:100})),radius:"62%",
+      axisName:{fontSize:9}},
+    series:[{type:"radar",data:[{value:Object.values(rc),name:"RHI",
+      areaStyle:{color:"rgba(16,185,129,.3)"},lineStyle:{color:"#10b981"},itemStyle:{color:"#10b981"}}]}]
+  });
+
+  // cover trend
+  const ct = mon.cover_trend || [];
+  if(ct.length){
+    const c5 = echarts.init($("chart-cover")); charts["cover"]=c5;
+    c5.setOption({
+      title:{text:t("coverTrend"),left:"center",textStyle:{fontSize:12}},
+      grid:{left:40,right:20,top:30,bottom:30},
+      xAxis:{type:"category",data:ct.map(x=>x.year)},
+      yAxis:{type:"value",name:"%",max:100},
+      series:[{type:"line",data:ct.map(x=>x.cover),smooth:true,
+        areaStyle:{color:"rgba(0,212,255,.25)"},lineStyle:{color:"#00d4ff"},itemStyle:{color:"#00d4ff"},
+        label:{show:true,fontSize:10}}]
+    });
+  }
+}
+
+function renderRegion(r){
+  const s = r.summary;
+  let html = `
+    <div class="report-header">
+      <h1>${lang==="zh"?"区域礁段汇总报告":"Regional Reef Restoration Report"}</h1>
+      <div class="sub">${r.segment_ids.join(" · ")} · ${r.generated_at}</div>
+    </div>
+
+    <h2 class="sec">📊 ${t("regionSummary")}</h2>
+    <div class="grid3">
+      <div class="card"><div class="k">Segments / 礁段数</div><div class="v">${s.count}</div></div>
+      <div class="card"><div class="k">${t("score")} (avg)</div><div class="v">${fmt(s.avg_score)}</div></div>
+      <div class="card"><div class="k">${t("bleachingProb")} (avg)</div><div class="v">${pct(s.avg_bleaching_prob)}</div></div>
+      <div class="card" style="border-top:3px solid #10b981"><div class="k">● Invest / 优先投入</div><div class="v">${s.invest_count}</div></div>
+      <div class="card" style="border-top:3px solid #f59e0b"><div class="k">● Monitor / 监测</div><div class="v">${s.monitor_count}</div></div>
+      <div class="card" style="border-top:3px solid #6b7280"><div class="k">● Deprioritize / 降级</div><div class="v">${s.deprioritize_count}</div></div>
+      <div class="card"><div class="k">Total Restoration Cost / 总修复成本</div><div class="v">$${fmt(s.total_restoration_cost,0)}</div></div>
+      <div class="card"><div class="k">${t("rhi")} (avg)</div><div class="v">${fmt(s.avg_rhi)}</div></div>
+    </div>
+
+    <div class="chart" id="chart-region"></div>
+
+    <h2 class="sec">📋 ${t("segments")}</h2>
+    <table class="tbl">
+      <thead><tr><th>ID</th><th>Name</th><th style="text-align:right">${t("score")}</th><th>${t("choice")}</th><th style="text-align:right">${t("bleachingProb")}</th><th style="text-align:right">${t("rhi")}</th><th style="text-align:right">Cost</th></tr></thead>
+      <tbody>
+        ${r.segments.map(x=>`<tr>
+          <td>${x.segment_id}</td>
+          <td>${lang==="zh"?x.name_zh:x.name}</td>
+          <td class="num">${fmt(x.final_score)}</td>
+          <td><span style="color:${choiceColor(x.choice)};font-weight:600">●</span> ${choiceLabel(x.choice)}</td>
+          <td class="num">${pct(x.bleaching_probability)}</td>
+          <td class="num">${fmt(x.rhi_score)}</td>
+          <td class="num">$${fmt(x.total_restoration_cost,0)}</td>
+        </tr>`).join("")}
+      </tbody>
+    </table>
+
+    <h2 class="sec">✅ ${t("regRec")}</h2>
+    <div class="rec-box">
+      <div>${lang==="zh"?r.recommendation_zh:r.recommendation}</div>
+      <span class="zh">${lang==="zh"?r.recommendation:r.recommendation_zh}</span>
+    </div>
+  `;
+  $("report-body").innerHTML = html;
+
+  setTimeout(()=>{
+    const c = echarts.init($("chart-region")); charts["region"]=c;
+    c.setOption({
+      title:{text:"Segment Scores",left:"center",textStyle:{fontSize:13}},
+      grid:{left:50,right:20,top:40,bottom:40},
+      tooltip:{trigger:"axis"},
+      xAxis:{type:"category",data:r.segments.map(x=>x.segment_id),axisLabel:{fontSize:10}},
+      yAxis:{type:"value",max:100},
+      series:[{type:"bar",data:r.segments.map(x=>({
+        value:x.final_score, itemStyle:{color:choiceColor(x.choice)}
+      })),label:{show:true,position:"top",fontSize:10}}]
+    });
+  },60);
+}
+
+// ---------- PDF export ----------
+$("pdf-btn").addEventListener("click", async ()=>{
+  const btn = $("pdf-btn");
+  const old = btn.innerHTML;
+  btn.innerHTML = "⏳ …";
+  try{
+    // wait for charts to render as images (echarts already has canvas, html2canvas will capture)
+    await new Promise(r=>setTimeout(r, 300));
+    const canvas = await html2canvas($("paper"), {scale:2, backgroundColor:"#ffffff", useCORS:true});
+    const img = canvas.toDataURL("image/jpeg", 0.95);
+    const pdf = new jspdf.jsPDF("p","mm","a4");
+    const pageW = 210, pageH = 297;
+    const imgH = canvas.height * pageW / canvas.width;
+    let heightLeft = imgH;
+    let pos = 0;
+    pdf.addImage(img, "JPEG", 0, pos, pageW, imgH);
+    heightLeft -= pageH;
+    while(heightLeft > 0){
+      pos = heightLeft - imgH;
+      pdf.addPage();
+      pdf.addImage(img, "JPEG", 0, pos, pageW, imgH);
+      heightLeft -= pageH;
+    }
+    const fname = (segSingle ? `report_${segSingle}` : `region_report`) + ".pdf";
+    pdf.save(fname);
+  }catch(e){
+    alert("PDF export failed: " + e.message + "\n\nFalling back to print dialog.");
+    window.print();
+  }finally{
+    btn.innerHTML = old;
+  }
+});
+
+// initial
+setLang(lang);
+window.addEventListener("resize", ()=>Object.values(charts).forEach(c=>{try{c.resize();}catch(e){}}));
+</script>
+</body>
+</html>
